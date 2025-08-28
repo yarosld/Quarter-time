@@ -1,484 +1,183 @@
-<!--
-QuarterTime — PWA MVP (Vanilla JS + TailwindCDN)
-Single-canvas delivery with three file sections:
-1) index.html  (this file)
-2) sw.js       (copy to /sw.js when deploying)
-3) manifest.json (copy to /manifest.json when deploying)
-
-Deploy steps (GitHub Pages):
-- Create a repo, add these three files at root.
-- Enable Pages (root). Commit & push.
-- Visit the Pages URL; the app should installable & offline-ready.
-
-Note on time model: per ТЗ, 90 хв = 4 × 22 хв (88 хв). У UI ми працюємо з 22-хв підблоками; 2 хв залишку на кожні 90 хв ігноруємо для простоти MVP.
--->
-
-<!-- ========================= index.html ========================= -->
-<!doctype html>
+<!DOCTYPE html>
 <html lang="uk">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>QuarterTime — PWA MVP</title>
-  <meta name="theme-color" content="#0ea5e9" />
-  <link rel="manifest" href="manifest.json">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230ea5e9'/%3E%3Cpath d='M10 10h44v44H10z' fill='white'/%3E%3Cpath d='M10 10h22v22H10z' fill='%230ea5e9'/%3E%3C/svg%3E"/>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    /* Minimal scrollbar */
-    * { scrollbar-width: thin; }
-    .grid-auto-fill-22 { grid-template-columns: repeat(auto-fill, minmax(140px,1fr)); }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuarterTime - Планувальник кварталів</title>
+    <meta name="theme-color" content="#4f46e5">
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="bg-slate-50 text-slate-900 min-h-screen">
-  <header class="sticky top-0 z-30 bg-white/70 backdrop-blur border-b border-slate-200">
-    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
-      <div class="flex items-center gap-2 font-semibold text-sky-600">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 3h18v18H3z" opacity=".15"/><path d="M3 3h9v9H3z"/></svg>
-        <span>QuarterTime</span>
-      </div>
-      <div class="ml-auto flex items-center gap-2">
-        <button id="btn-today" class="px-3 py-1.5 rounded-xl bg-sky-600 text-white hover:bg-sky-700">Сьогодні</button>
-        <select id="view-level" class="px-2 py-1.5 rounded-xl border border-slate-300 bg-white">
-          <option value="year">Рік</option>
-          <option value="quarter">Квартал</option>
-          <option value="month">Місяць</option>
-          <option value="week">Тиждень</option>
-          <option value="day" selected>День</option>
-        </select>
-        <button id="btn-prev" class="px-3 py-1.5 rounded-xl border border-slate-300 hover:bg-slate-100">◀</button>
-        <div id="title" class="font-medium min-w-[180px] text-center"></div>
-        <button id="btn-next" class="px-3 py-1.5 rounded-xl border border-slate-300 hover:bg-slate-100">▶</button>
-        <button id="btn-install" class="hidden px-3 py-1.5 rounded-xl border border-sky-300 text-sky-700 hover:bg-sky-50">Встановити</button>
-      </div>
+<body>
+    <div class="app-container">
+        <!-- Бічна панель -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i class="fas fa-calendar-alt"></i>
+                <span>QuarterTime</span>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active">
+                    <i class="fas fa-calendar-day"></i>
+                    <span>Календар</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-tasks"></i>
+                    <span>Чек-листи</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-cog"></i>
+                    <span>Налаштування</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-question-circle"></i>
+                    <span>Допомога</span>
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="avatar">U</div>
+                    <div class="user-info">
+                        <span class="user-name">Користувач</span>
+                        <span class="user-status">Активний</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Головний контент -->
+        <main class="main-content">
+            <header class="content-header">
+                <div class="header-left">
+                    <h1>Липень 2023</h1>
+                    <div class="date-navigation">
+                        <button class="nav-btn"><i class="fas fa-chevron-left"></i></button>
+                        <button class="nav-btn today-btn">Сьогодні</button>
+                        <button class="nav-btn"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                </div>
+                
+                <div class="header-right">
+                    <div class="view-selector">
+                        <button class="view-btn">Рік</button>
+                        <button class="view-btn">Квартал</button>
+                        <button class="view-btn active">Місяць</button>
+                        <button class="view-btn">Тиждень</button>
+                        <button class="view-btn">День</button>
+                    </div>
+                    <button class="add-event-btn" id="addEventBtn">
+                        <i class="fas fa-plus"></i>
+                        Додати подію
+                    </button>
+                </div>
+            </header>
+
+            <div class="content-body">
+                <!-- Перегляд місяця -->
+                <div class="month-view">
+                    <div class="weekdays-header">
+                        <div>Понеділок</div>
+                        <div>Вівторок</div>
+                        <div>Середа</div>
+                        <div>Четвер</div>
+                        <div>П'ятниця</div>
+                        <div>Субота</div>
+                        <div>Неділя</div>
+                    </div>
+                    
+                    <div class="calendar-grid">
+                        <!-- Дні місяця будуть додані через JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Чек-лист -->
+                <div class="checklist-section">
+                    <h2>Чек-лист на сьогодні</h2>
+                    <div class="checklist">
+                        <div class="checklist-item">
+                            <label class="checkbox-container">
+                                <input type="checkbox">
+                                <span class="checkmark"></span>
+                                Перевірити email
+                            </label>
+                            <div class="item-actions">
+                                <button class="icon-btn"><i class="fas fa-calendar-plus"></i></button>
+                            </div>
+                        </div>
+                        <div class="checklist-item">
+                            <label class="checkbox-container">
+                                <input type="checkbox" checked>
+                                <span class="checkmark"></span>
+                                Створити план на день
+                            </label>
+                            <div class="item-actions">
+                                <button class="icon-btn"><i class="fas fa-calendar-plus"></i></button>
+                            </div>
+                        </div>
+                        <div class="checklist-item">
+                            <label class="checkbox-container">
+                                <input type="checkbox">
+                                <span class="checkmark"></span>
+                                Підготувати звіт
+                            </label>
+                            <div class="item-actions">
+                                <button class="icon-btn"><i class="fas fa-calendar-plus"></i></button>
+                            </div>
+                        </div>
+                        <button class="add-task-btn">
+                            <i class="fas fa-plus"></i> Додати задачу
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
     </div>
-  </header>
 
-  <main class="max-w-6xl mx-auto p-4 grid md:grid-cols-3 gap-4">
-    <!-- Planner / Checklist -->
-    <section class="md:col-span-1">
-      <div class="bg-white rounded-2xl shadow p-4 space-y-4">
-        <h2 class="text-lg font-semibold">Чек-ліст ➜ події [QT]</h2>
-        <textarea id="checklist" class="w-full h-40 rounded-xl border border-slate-300 p-3" placeholder="Кожен рядок = задача.\nВикористовуйте #теги напр.: \nВправи 22хв #спорт\nАнглійська 44хв #навчання"></textarea>
-        <div class="flex items-center gap-2">
-          <label class="text-sm">Тривалість за замовч.: </label>
-          <select id="default-duration" class="px-2 py-1 rounded-xl border border-slate-300">
-            <option value="22">22 хв</option>
-            <option value="44">44 хв</option>
-            <option value="66">66 хв</option>
-            <option value="88">88 хв</option>
-          </select>
-          <button id="btn-create-events" class="ml-auto px-3 py-1.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700">Створити події</button>
+    <!-- Модальне вікно для додавання події -->
+    <div class="modal" id="eventModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Додати подію</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form id="eventForm">
+                <div class="form-group">
+                    <label for="eventTitle">Назва події</label>
+                    <input type="text" id="eventTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="eventDate">Дата</label>
+                    <input type="date" id="eventDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="eventTime">Час</label>
+                    <input type="time" id="eventTime" required>
+                </div>
+                <div class="form-group">
+                    <label for="eventDuration">Тривалість</label>
+                    <select id="eventDuration">
+                        <option value="22">22 хвилини</option>
+                        <option value="45">45 хвилин (2 квартали)</option>
+                        <option value="90">90 хвилин (блок)</option>
+                        <option value="360">6 годин (квартал дня)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="eventTags">Теги (через кому)</label>
+                    <input type="text" id="eventTags" placeholder="#робота, #навчання, #спорт">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary">Скасувати</button>
+                    <button type="submit" class="btn btn-primary">Зберегти</button>
+                </div>
+            </form>
         </div>
-        <div class="text-xs text-slate-500">* Події розкладаються по 22-хв слотах обраного дня. У назву додається мітка [QT].</div>
-        <div class="flex gap-2">
-          <button id="btn-export-ics" class="px-3 py-1.5 rounded-xl border border-slate-300 hover:bg-slate-50">Експорт .ics</button>
-          <input id="ics-file" type="file" accept="text/calendar,.ics" class="hidden" />
-          <button id="btn-import-ics" class="px-3 py-1.5 rounded-xl border border-slate-300 hover:bg-slate-50">Імпорт .ics</button>
-        </div>
-        <div class="flex gap-2">
-          <button id="btn-gcal-sync" class="px-3 py-1.5 rounded-xl border border-slate-300 hover:bg-slate-50">Google Sync (stub)</button>
-          <button id="btn-clear" class="ml-auto px-3 py-1.5 rounded-xl text-rose-700 border border-rose-200 hover:bg-rose-50">Очистити все</button>
-        </div>
-      </div>
-    </section>
+    </div>
 
-    <!-- Calendar -->
-    <section class="md:col-span-2">
-      <div class="bg-white rounded-2xl shadow p-4 space-y-4">
-        <h2 class="text-lg font-semibold">Календар QuarterTime</h2>
-        <div id="calendar" class="space-y-3"></div>
-      </div>
-    </section>
-  </main>
-
-  <footer class="max-w-6xl mx-auto p-4 text-xs text-slate-500">
-    PWA офлайн-режим, IndexedDB збереження, .ics експорт/імпорт, Google Calendar stub.
-  </footer>
-
-  <script>
-  // ===================== Utility & Storage (IndexedDB wrapper) =====================
-  const DB_NAME = 'quartertime-db';
-  const DB_VERSION = 1;
-  const STORE_EVENTS = 'events';
-
-  function openDB() {
-    return new Promise((resolve, reject) => {
-      const req = indexedDB.open(DB_NAME, DB_VERSION);
-      req.onupgradeneeded = (e) => {
-        const db = req.result;
-        if (!db.objectStoreNames.contains(STORE_EVENTS)) {
-          db.createObjectStore(STORE_EVENTS, { keyPath: 'id' });
-        }
-      };
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
-    });
-  }
-
-  async function idbGetAll() {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_EVENTS, 'readonly');
-      const store = tx.objectStore(STORE_EVENTS);
-      const req = store.getAll();
-      req.onsuccess = () => resolve(req.result || []);
-      req.onerror = () => reject(req.error);
-    });
-  }
-
-  async function idbPut(event) {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_EVENTS, 'readwrite');
-      const store = tx.objectStore(STORE_EVENTS);
-      const req = store.put(event);
-      req.onsuccess = () => resolve(true);
-      req.onerror = () => reject(req.error);
-    });
-  }
-
-  async function idbBulkPut(events) {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_EVENTS, 'readwrite');
-      const store = tx.objectStore(STORE_EVENTS);
-      events.forEach(ev => store.put(ev));
-      tx.oncomplete = () => resolve(true);
-      tx.onerror = () => reject(tx.error);
-    });
-  }
-
-  async function idbDelete(id) {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_EVENTS, 'readwrite');
-      const store = tx.objectStore(STORE_EVENTS);
-      const req = store.delete(id);
-      req.onsuccess = () => resolve(true);
-      req.onerror = () => reject(req.error);
-    });
-  }
-
-  async function idbClear() {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_EVENTS, 'readwrite');
-      const store = tx.objectStore(STORE_EVENTS);
-      const req = store.clear();
-      req.onsuccess = () => resolve(true);
-      req.onerror = () => reject(req.error);
-    });
-  }
-
-  // ===================== Time Model (Year → Quarter → Month → Week → Day → Blocks) =====================
-  function startOfDay(d) { const x = new Date(d); x.setHours(0,0,0,0); return x; }
-  function addMinutes(d, m) { return new Date(d.getTime() + m*60000); }
-  function fmtHM(d) { return d.toTimeString().slice(0,5); }
-  function ymd(d){return d.toISOString().slice(0,10);} 
-
-  // Day → 4 × 6 год квартали; кожний 6 год = 4 × 90 хв блоки; кожний 90 хв ≈ 4 × 22 хв підблоки
-  function makeDayGrid(date) {
-    const dayStart = startOfDay(date);
-    const quarters = [];
-    for (let q=0; q<4; q++) {
-      const qStart = addMinutes(dayStart, q*6*60);
-      const blocks = [];
-      for (let b=0; b<4; b++) {
-        const bStart = addMinutes(qStart, b*90);
-        const sub = [];
-        for (let s=0; s<4; s++) {
-          const sStart = addMinutes(bStart, s*22); // 22-хв слоти
-          sub.push({ start: sStart, end: addMinutes(sStart, 22)});
-        }
-        blocks.push({ start: bStart, end: addMinutes(bStart, 90), sub });
-      }
-      quarters.push({ start: qStart, end: addMinutes(qStart, 6*60), blocks });
-    }
-    return { date: ymd(date), quarters };
-  }
-
-  // ===================== Rendering =====================
-  const state = {
-    cursor: startOfDay(new Date()),
-    level: 'day',
-    deferredPrompt: null,
-    events: [] // {id, title, note, tags[], start, end, done:boolean}
-  };
-
-  function setTitle() {
-    const t = document.getElementById('title');
-    const d = state.cursor;
-    const opts = { day: '2-digit', month: 'short', year: 'numeric' };
-    if (state.level === 'day') {
-      t.textContent = d.toLocaleDateString(undefined, opts);
-    } else if (state.level === 'week') {
-      const start = new Date(d); const day = d.getDay();
-      const diff = (day === 0 ? -6 : 1 - day); // ISO week start Mon
-      start.setDate(d.getDate() + diff);
-      const end = new Date(start); end.setDate(start.getDate()+6);
-      t.textContent = `${start.toLocaleDateString()} – ${end.toLocaleDateString()}`;
-    } else if (state.level === 'month') {
-      t.textContent = d.toLocaleDateString(undefined, { month:'long', year:'numeric' });
-    } else if (state.level === 'quarter') {
-      const q = Math.floor(d.getMonth()/3)+1;
-      t.textContent = `Q${q} ${d.getFullYear()}`;
-    } else {
-      t.textContent = `${d.getFullYear()}`;
-    }
-  }
-
-  function tagPills(tags) {
-    return tags.map(tag=>`<span class='px-2 py-0.5 rounded-full text-xs border border-slate-200'>${tag}</span>`).join('');
-  }
-
-  function renderDay() {
-    const cal = document.getElementById('calendar');
-    cal.innerHTML = '';
-    const grid = makeDayGrid(state.cursor);
-    const dayEvents = state.events.filter(e => ymd(new Date(e.start)) === grid.date).sort((a,b)=> new Date(a.start)-new Date(b.start));
-
-    grid.quarters.forEach((q, qi) => {
-      const section = document.createElement('div');
-      section.className = 'border border-slate-200 rounded-2xl overflow-hidden';
-
-      const header = document.createElement('div');
-      header.className = 'px-3 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between';
-      header.innerHTML = `<div class='font-medium'>Квартал ${qi+1} (${fmtHM(q.start)} – ${fmtHM(q.end)})</div>`;
-      section.appendChild(header);
-
-      const blocksWrap = document.createElement('div');
-      blocksWrap.className = 'grid grid-cols-1 sm:grid-cols-2 gap-3 p-3';
-
-      q.blocks.forEach((b, bi) => {
-        const card = document.createElement('div');
-        card.className = 'rounded-xl border border-slate-200 p-3';
-        const subHTML = b.sub.map((s, si)=>{
-          const slotEvents = dayEvents.filter(e=> new Date(e.start).getTime() === s.start.getTime());
-          const evs = slotEvents.map(e=>`
-            <div class='mt-1 text-sm flex items-center gap-2'>
-              <input type='checkbox' data-ev='${e.id}' ${e.done?'checked':''} class='ev-done accent-emerald-600'>
-              <span class='font-medium'>${e.title}</span>
-              <span class='text-xs text-slate-500'>${fmtHM(new Date(e.start))}-${fmtHM(new Date(e.end))}</span>
-              <span class='ml-auto flex gap-1'>${tagPills(e.tags)}</span>
-              <button class='text-rose-600 text-xs border border-rose-200 px-2 py-0.5 rounded delete-ev' data-ev='${e.id}'>×</button>
-            </div>`).join('');
-          return `<div class='border border-slate-100 rounded-lg p-2'>
-            <div class='text-xs text-slate-500'>Підблок ${si+1} (${fmtHM(s.start)} – ${fmtHM(s.end)})</div>
-            ${evs || `<div class='text-xs text-slate-400 italic'>порожньо</div>`}
-          </div>`;
-        }).join('');
-        card.innerHTML = `<div class='text-sm font-medium'>Блок ${bi+1} (${fmtHM(b.start)} – ${fmtHM(b.end)})</div><div class='mt-2 grid gap-2'>${subHTML}</div>`;
-        blocksWrap.appendChild(card);
-      });
-
-      section.appendChild(blocksWrap);
-      cal.appendChild(section);
-    });
-
-    // bind checkbox & delete
-    cal.querySelectorAll('.ev-done').forEach(cb => {
-      cb.addEventListener('change', async (e)=>{
-        const id = e.target.getAttribute('data-ev');
-        const ev = state.events.find(x=>x.id===id);
-        if (ev){ ev.done = e.target.checked; await idbPut(ev); }
-      });
-    });
-    cal.querySelectorAll('.delete-ev').forEach(btn=>{
-      btn.addEventListener('click', async ()=>{
-        const id = btn.getAttribute('data-ev');
-        await idbDelete(id);
-        state.events = await idbGetAll();
-        render();
-      });
-    });
-  }
-
-  function render() {
-    setTitle();
-    if (state.level === 'day') renderDay();
-    else {
-      const cal = document.getElementById('calendar');
-      cal.innerHTML = `<div class='p-6 text-slate-500'>У цьому MVP реалізовано детальний вигляд дня. Перемикач рівнів працює для заголовка та навігації.</div>`;
-    }
-  }
-
-  // ===================== Event creation from checklist =====================
-  function parseLine(line, defaultMinutes){
-    let mins = defaultMinutes;
-    const m = line.match(/(\d{2})\s*х?\s*х?\s*?х?\s*?х?\s*?х?\s*?х?\s*?х?\s*?х?\s*?х?\s*?х?\s*?х?\s*?\s*?х?\s*?х?\s*?/i); // lenient, keep default
-    const dur = line.match(/(22|44|66|88)\s*х?\s*?х?\s*?в?х?м?в?/i);
-    if (dur) mins = parseInt(dur[1],10);
-    const tags = Array.from(line.matchAll(/#\S+/g)).map(x=>x[0]);
-    const title = line.replace(/#\S+/g,'').replace(/\s*(22|44|66|88)\s*.*$/,'').trim();
-    return { title: title || 'Задача', mins, tags };
-  }
-
-  function nextFreeSlot(date, mins, takenStarts){
-    const grid = makeDayGrid(date);
-    for (const q of grid.quarters){
-      for (const b of q.blocks){
-        for (const s of b.sub){
-          const key = s.start.getTime();
-          if (!takenStarts.has(key) && mins % 22 === 0) return { start:s.start, end:addMinutes(s.start, mins) };
-        }
-      }
-    }
-    return null;
-  }
-
-  async function createEventsFromChecklist(){
-    const textarea = document.getElementById('checklist');
-    const def = parseInt(document.getElementById('default-duration').value,10);
-    const lines = textarea.value.split(/\n+/).map(l=>l.trim()).filter(Boolean);
-    if (!lines.length) return;
-
-    const date = state.cursor;
-    const existing = (await idbGetAll()).filter(e=> ymd(new Date(e.start)) === ymd(date));
-    const taken = new Set(existing.map(e=> new Date(e.start).getTime()));
-
-    const newEvents = [];
-    for (const line of lines){
-      const { title, mins, tags } = parseLine(line, def);
-      const slot = nextFreeSlot(date, mins, taken);
-      if (!slot) continue;
-      const id = crypto.randomUUID();
-      taken.add(slot.start.getTime());
-      newEvents.push({ id, title: `${title} [QT]`, note: '', tags, start: slot.start.toISOString(), end: slot.end.toISOString(), done:false });
-    }
-    if (newEvents.length){
-      await idbBulkPut(newEvents);
-      state.events = await idbGetAll();
-      render();
-    }
-  }
-
-  // ===================== ICS Export/Import =====================
-  function toICS(events){
-    const lines = [
-      'BEGIN:VCALENDAR',
-      'VERSION:2.0',
-      'PRODID:-//QuarterTime//MVP//UA'
-    ];
-    for (const e of events){
-      lines.push(
-        'BEGIN:VEVENT',
-        `UID:${e.id}`,
-        `DTSTAMP:${new Date().toISOString().replace(/[-:]/g,'').replace(/\..+/,'Z')}`,
-        `DTSTART:${e.start.replace(/[-:]/g,'').replace(/\..+/,'Z')}`,
-        `DTEND:${e.end.replace(/[-:]/g,'').replace(/\..+/,'Z')}`,
-        `SUMMARY:${e.title}`,
-        `DESCRIPTION:${(e.note||'') + (e.tags?.length? '\n' + e.tags.join(' '):'')}`,
-        'END:VEVENT'
-      );
-    }
-    lines.push('END:VCALENDAR');
-    return lines.join('\r\n');
-  }
-
-  function downloadICS(){
-    const qtEvents = state.events.sort((a,b)=> new Date(a.start)-new Date(b.start));
-    const ics = toICS(qtEvents);
-    const blob = new Blob([ics], {type:'text/calendar'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `QuarterTime_${ymd(new Date())}.ics`;
-    a.click(); URL.revokeObjectURL(url);
-  }
-
-  function importICS(text){
-    // Minimal ICS reader: DTSTART, DTEND, SUMMARY parsed; assumes UTC Z format
-    const events = [];
-    const blocks = text.split('BEGIN:VEVENT').slice(1);
-    for (const b of blocks){
-      const uid = (b.match(/UID:([^\r\n]+)/)||[])[1] || crypto.randomUUID();
-      const start = (b.match(/DTSTART:([^\r\n]+)/)||[])[1];
-      const end = (b.match(/DTEND:([^\r\n]+)/)||[])[1];
-      const sum = (b.match(/SUMMARY:([^\r\n]+)/)||[])[1] || 'Подія [QT]';
-      const desc = (b.match(/DESCRIPTION:([^\r\n]+)/)||[])[1] || '';
-      const tags = Array.from(desc.matchAll(/#\S+/g)).map(x=>x[0]);
-      if (start && end){
-        events.push({ id: uid, title: sum, note: desc, tags, start: icsToISO(start), end: icsToISO(end), done:false });
-      }
-    }
-    return events;
-  }
-
-  function icsToISO(v){
-    // 20250131T120000Z -> 2025-01-31T12:00:00.000Z
-    const m = v.match(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z/);
-    if (!m) return new Date().toISOString();
-    const [_,y,mo,d,h,mi,s] = m;
-    return new Date(Date.UTC(+y, +mo-1, +d, +h, +mi, +s)).toISOString();
-  }
-
-  // ===================== Google Calendar (stub) =====================
-  async function googleSyncStub(){
-    alert('Google Sync (stub):\nЦей MVP не містить OAuth.\nПередбачено: створення подій з міткою [QT] у вашому Google Calendar через gapi.');
-  }
-
-  // ===================== Navigation & Init =====================
-  async function load(){
-    state.events = await idbGetAll();
-    render();
-  }
-
-  document.getElementById('view-level').addEventListener('change', (e)=>{
-    state.level = e.target.value; render();
-  });
-  document.getElementById('btn-prev').addEventListener('click', ()=>{
-    const d = new Date(state.cursor);
-    if (state.level==='day') d.setDate(d.getDate()-1);
-    else if (state.level==='week') d.setDate(d.getDate()-7);
-    else if (state.level==='month') d.setMonth(d.getMonth()-1);
-    else if (state.level==='quarter') d.setMonth(d.getMonth()-3);
-    else d.setFullYear(d.getFullYear()-1);
-    state.cursor = startOfDay(d); render();
-  });
-  document.getElementById('btn-next').addEventListener('click', ()=>{
-    const d = new Date(state.cursor);
-    if (state.level==='day') d.setDate(d.getDate()+1);
-    else if (state.level==='week') d.setDate(d.getDate()+7);
-    else if (state.level==='month') d.setMonth(d.getMonth()+1);
-    else if (state.level==='quarter') d.setMonth(d.getMonth()+3);
-    else d.setFullYear(d.getFullYear()+1);
-    state.cursor = startOfDay(d); render();
-  });
-  document.getElementById('btn-today').addEventListener('click', ()=>{ state.cursor = startOfDay(new Date()); render(); });
-  document.getElementById('btn-create-events').addEventListener('click', createEventsFromChecklist);
-  document.getElementById('btn-export-ics').addEventListener('click', downloadICS);
-  document.getElementById('btn-import-ics').addEventListener('click', ()=> document.getElementById('ics-file').click());
-  document.getElementById('ics-file').addEventListener('change', async (e)=>{
-    const file = e.target.files[0]; if (!file) return;
-    const text = await file.text();
-    const list = importICS(text);
-    await idbBulkPut(list); state.events = await idbGetAll(); render();
-  });
-  document.getElementById('btn-gcal-sync').addEventListener('click', googleSyncStub);
-  document.getElementById('btn-clear').addEventListener('click', async ()=>{ if (confirm('Видалити всі події [QT]?')) { await idbClear(); state.events = []; render(); } });
-
-  // PWA install prompt
-  window.addEventListener('beforeinstallprompt', (e)=>{
-    e.preventDefault(); state.deferredPrompt = e;
-    document.getElementById('btn-install').classList.remove('hidden');
-  });
-  document.getElementById('btn-install').addEventListener('click', async ()=>{
-    if (!state.deferredPrompt) return; state.deferredPrompt.prompt();
-    await state.deferredPrompt.userChoice; state.deferredPrompt = null;
-    document.getElementById('btn-install').classList.add('hidden');
-  });
-
-  // Register SW
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', ()=> navigator.serviceWorker.register('./sw.js'));
-  }
-
-  load();
-  </script>
+    <script src="app.js"></script>
 </body>
 </html>
-
-
-
-
-

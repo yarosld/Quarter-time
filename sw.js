@@ -1,29 +1,43 @@
-<!-- ========================= sw.js ========================= -->
-<!--
-SAVE AS: sw.js (root)
--->
-<script type="text/plain" id="sw.js">
-const CACHE_NAME = 'qt-cache-v1';
+// Простий офлайн-кеш для GitHub Pages
+const CACHE = 'qt-cache-v1';
 const ASSETS = [
   './',
   './index.html',
-  './manifest.json',
-  'https://cdn.tailwindcss.com'
+  './manifest.json'
 ];
-self.addEventListener('install', (e)=>{
-  e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()));
-});
-self.addEventListener('activate', (e)=>{
-  e.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(k=>k!==CACHE_NAME?caches.delete(k):null))).then(()=>self.clients.claim()));
-});
-self.addEventListener('fetch', (e)=>{
-  const req = e.request;
-  e.respondWith(
-    caches.match(req).then(res=> res || fetch(req).then(r=>{
-      const copy = r.clone();
-      caches.open(CACHE_NAME).then(c=> c.put(req, copy)).catch(()=>{});
-      return r;
-    }).catch(()=> caches.match('./index.html')))
+
+self.addEventListener('install', (e) => {
+  e.waitUntil(
+    caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting())
   );
 });
-</script>
+
+self.addEventListener('activate', (e) => {
+  e.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.map(k => (k !== CACHE ? caches.delete(k) : Promise.resolve())))
+    ).then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', (e) => {
+  const req = e.request;
+  // Network-first для HTML, cache-first для статичних
+  if (req.headers.get('accept')?.includes('text/html')) {
+    e.respondWith(
+      fetch(req).then(res => {
+        const copy = res.clone();
+        caches.open(CACHE).then(c => c.put(req, copy));
+        return res;
+      }).catch(() => caches.match(req).then(r => r || caches.match('./')))
+    );
+  } else {
+    e.respondWith(
+      caches.match(req).then(r => r || fetch(req).then(res => {
+        const copy = res.clone();
+        caches.open(CACHE).then(c => c.put(req, copy));
+        return res;
+      }))
+    );
+  }
+});

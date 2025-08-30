@@ -1,130 +1,183 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QuarterTime</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      display: flex;
-      height: 100vh;
-      background: linear-gradient(135deg, #1e1e2f, #2b2b40);
-      color: white;
-    }
-
-    /* Фрактальна сітка */
-    .grid {
-      flex: 3;
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      grid-template-rows: repeat(2, 1fr);
-      gap: 10px;
-      padding: 20px;
-    }
-
-    .cell {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 15px;
-      display: flex;
-      flex-direction: column;
-      padding: 10px;
-      transition: all 0.3s ease;
-      overflow-y: auto;
-    }
-
-    .cell:hover {
-      background: rgba(255, 255, 255, 0.1);
-    }
-
-    .task {
-      background: rgba(255, 255, 255, 0.15);
-      margin: 5px 0;
-      padding: 5px 10px;
-      border-radius: 8px;
-    }
-
-    /* Панель додавання завдань */
-    .sidebar {
-      flex: 1;
-      background: rgba(0, 0, 0, 0.3);
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      border-left: 2px solid rgba(255, 255, 255, 0.2);
-    }
-
-    .sidebar h2 {
-      margin-top: 0;
-      font-size: 1.2em;
-      text-align: center;
-    }
-
-    input, select, button {
-      margin: 10px 0;
-      padding: 10px;
-      border: none;
-      border-radius: 8px;
-      font-size: 1em;
-    }
-
-    input, select {
-      width: 100%;
-    }
-
-    button {
-      background: #4cafef;
-      color: white;
-      cursor: pointer;
-      transition: 0.3s;
-    }
-
-    button:hover {
-      background: #379ad5;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuarterTime - Планувальник кварталів</title>
+    <meta name="theme-color" content="#4f46e5">
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
+    <div class="app-container">
+        <!-- Бічна панель -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i class="fas fa-calendar-alt"></i>
+                <span>QuarterTime</span>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active">
+                    <i class="fas fa-calendar-day"></i>
+                    <span>Календар</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-tasks"></i>
+                    <span>Чек-листи</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-cog"></i>
+                    <span>Налаштування</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-question-circle"></i>
+                    <span>Допомога</span>
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="avatar">U</div>
+                    <div class="user-info">
+                        <span class="user-name">Користувач</span>
+                        <span class="user-status">Активний</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
 
-  <!-- Фрактальна сітка -->
-  <div class="grid" id="grid">
-    <div class="cell" id="q1"><h3>Q1</h3></div>
-    <div class="cell" id="q2"><h3>Q2</h3></div>
-    <div class="cell" id="q3"><h3>Q3</h3></div>
-    <div class="cell" id="q4"><h3>Q4</h3></div>
-  </div>
+        <!-- Головний контент -->
+        <main class="main-content">
+            <header class="content-header">
+                <div class="header-left">
+                    <h1>Липень 2023</h1>
+                    <div class="date-navigation">
+                        <button class="nav-btn"><i class="fas fa-chevron-left"></i></button>
+                        <button class="nav-btn today-btn">Сьогодні</button>
+                        <button class="nav-btn"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                </div>
+                
+                <div class="header-right">
+                    <div class="view-selector">
+                        <button class="view-btn">Рік</button>
+                        <button class="view-btn">Квартал</button>
+                        <button class="view-btn active">Місяць</button>
+                        <button class="view-btn">Тиждень</button>
+                        <button class="view-btn">День</button>
+                    </div>
+                    <button class="add-event-btn" id="addEventBtn">
+                        <i class="fas fa-plus"></i>
+                        Додати подію
+                    </button>
+                </div>
+            </header>
 
-  <!-- Панель для введення завдань -->
-  <div class="sidebar">
-    <h2>Нове завдання</h2>
-    <input type="text" id="taskInput" placeholder="Введіть завдання...">
-    <select id="quarterSelect">
-      <option value="q1">Q1</option>
-      <option value="q2">Q2</option>
-      <option value="q3">Q3</option>
-      <option value="q4">Q4</option>
-    </select>
-    <button onclick="addTask()">Додати</button>
-  </div>
+            <div class="content-body">
+                <!-- Перегляд місяця -->
+                <div class="month-view">
+                    <div class="weekdays-header">
+                        <div>Понеділок</div>
+                        <div>Вівторок</div>
+                        <div>Середа</div>
+                        <div>Четвер</div>
+                        <div>П'ятниця</div>
+                        <div>Субота</div>
+                        <div>Неділя</div>
+                    </div>
+                    
+                    <div class="calendar-grid">
+                        <!-- Дні місяця будуть додані через JavaScript -->
+                    </div>
+                </div>
 
-  <script>
-    function addTask() {
-      const taskText = document.getElementById("taskInput").value;
-      const quarter = document.getElementById("quarterSelect").value;
+                <!-- Чек-лист -->
+                <div class="checklist-section">
+                    <h2>Чек-лист на сьогодні</h2>
+                    <div class="checklist">
+                        <div class="checklist-item">
+                            <label class="checkbox-container">
+                                <input type="checkbox">
+                                <span class="checkmark"></span>
+                                Перевірити email
+                            </label>
+                            <div class="item-actions">
+                                <button class="icon-btn"><i class="fas fa-calendar-plus"></i></button>
+                            </div>
+                        </div>
+                        <div class="checklist-item">
+                            <label class="checkbox-container">
+                                <input type="checkbox" checked>
+                                <span class="checkmark"></span>
+                                Створити план на день
+                            </label>
+                            <div class="item-actions">
+                                <button class="icon-btn"><i class="fas fa-calendar-plus"></i></button>
+                            </div>
+                        </div>
+                        <div class="checklist-item">
+                            <label class="checkbox-container">
+                                <input type="checkbox">
+                                <span class="checkmark"></span>
+                                Підготувати звіт
+                            </label>
+                            <div class="item-actions">
+                                <button class="icon-btn"><i class="fas fa-calendar-plus"></i></button>
+                            </div>
+                        </div>
+                        <button class="add-task-btn">
+                            <i class="fas fa-plus"></i> Додати задачу
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
 
-      if (taskText.trim() === "") return;
+    <!-- Модальне вікно для додавання події -->
+    <div class="modal" id="eventModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Додати подію</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form id="eventForm">
+                <div class="form-group">
+                    <label for="eventTitle">Назва події</label>
+                    <input type="text" id="eventTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="eventDate">Дата</label>
+                    <input type="date" id="eventDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="eventTime">Час</label>
+                    <input type="time" id="eventTime" required>
+                </div>
+                <div class="form-group">
+                    <label for="eventDuration">Тривалість</label>
+                    <select id="eventDuration">
+                        <option value="22">22 хвилини</option>
+                        <option value="45">45 хвилин (2 квартали)</option>
+                        <option value="90">90 хвилин (блок)</option>
+                        <option value="360">6 годин (квартал дня)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="eventTags">Теги (через кому)</label>
+                    <input type="text" id="eventTags" placeholder="#робота, #навчання, #спорт">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary">Скасувати</button>
+                    <button type="submit" class="btn btn-primary">Зберегти</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-      const task = document.createElement("div");
-      task.classList.add("task");
-      task.innerText = taskText;
-
-      document.getElementById(quarter).appendChild(task);
-
-      document.getElementById("taskInput").value = "";
-    }
-  </script>
+    <script src="app.js"></script>
 </body>
 </html>
-

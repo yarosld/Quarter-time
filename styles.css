@@ -1,0 +1,95 @@
+:root {
+  --bg: #174C4E;
+  --core: #8F88F4;
+  --outer-q1: #939393;
+  --outer-q2: #DD9090;
+  --outer-q3: #C3EDCF;
+  --outer-q4: #B4CEFF;
+  --mid-q1: #AFAFB5;
+  --mid-q2: #FEC6C6;
+  --mid-q3: #9EDAB0;
+  --mid-q4: #A7BBE3;
+  --text: #FFFFFF;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, Arial, sans-serif;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+header {
+  text-align: center;
+  font-size: 1.5em;
+  padding: 10px;
+}
+
+main {
+  flex: 1;
+  display: flex;
+}
+
+#fractal-container {
+  flex: 2;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#right-panel {
+  flex: 1;
+  padding: 10px;
+  overflow: auto;
+}
+
+footer {
+  padding: 10px;
+  display: flex;
+  justify-content: center;
+}
+
+#quick-note {
+  width: 80%;
+  padding: 10px;
+  border-radius: 5px;
+  border: none;
+}
+
+#add-task {
+  margin-left: 10px;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  background: var(--text);
+  color: var(--bg);
+  border: none;
+}
+
+/* SVG styles */
+svg {
+  width: 100%;
+  height: auto;
+}
+
+text {
+  fill: var(--text);
+  font-size: 12px;
+  text-anchor: middle;
+  dominant-baseline: middle;
+}
+
+/* Hover */
+g:hover path {
+  fill-opacity: 0.8;
+  transform: scale(1.05);
+  transform-origin: center;
+}
+
+/* Accessibility focus */
+:focus {
+  outline: 2px solid var(--text);
+}

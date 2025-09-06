@@ -1,18 +1,20 @@
-<!-- ========================= manifest.json ========================= -->
-<!--
-SAVE AS: manifest.json (root)
--->
-<script type="application/json" id="manifest.json">
 {
-  "name": "QuarterTime",
-  "short_name": "QuarterTime",
-  "start_url": ".",
+  "name": "Fractal Planner",
+  "short_name": "Quatertime",
+  "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#0ea5e9",
+  "background_color": "#174C4E",
+  "theme_color": "#174C4E",
   "icons": [
-    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
-    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"}
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
   ]
 }
-</script>

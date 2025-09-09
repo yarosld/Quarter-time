@@ -1,18 +1,104 @@
-<!-- ========================= manifest.json ========================= -->
-<!--
-SAVE AS: manifest.json (root)
--->
-<script type="application/json" id="manifest.json">
 {
-  "name": "QuarterTime",
-  "short_name": "QuarterTime",
-  "start_url": ".",
+  "name": "Fractal Planner - Quartertime Task Manager",
+  "short_name": "Fractal Planner",
+  "description": "Visual task planning with fractal time circles. Organize your tasks by quarters, months, and days with intuitive drag-and-drop interface.",
+  "version": "1.0.0",
+  "start_url": "./",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#0ea5e9",
+  "orientation": "portrait-primary",
+  "theme_color": "#174C4E",
+  "background_color": "#174C4E",
+  "scope": "./",
+  "lang": "uk",
+  "dir": "ltr",
+  "categories": ["productivity", "lifestyle", "business"],
+  "screenshots": [
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIwIiBoZWlnaHQ9IjU2OCIgdmlld0JveD0iMCAwIDMyMCA1NjgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjMyMCIgaGVpZ2h0PSI1NjgiIGZpbGw9IiMxNzRDNEUiLz48Y2lyY2xlIGN4PSIxNjAiIGN5PSIyMDAiIHI9IjEwMCIgZmlsbD0iIzhGODhGNCIgZmlsbC1vcGFjaXR5PSIwLjgiLz48dGV4dCB4PSIxNjAiIHk9IjUwIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIxOCI+UXVhcnRlcnRpbWU8L3RleHQ+PC9zdmc+",
+      "sizes": "320x568",
+      "type": "image/svg+xml",
+      "form_factor": "narrow",
+      "label": "Homescreen of Fractal Planner showing the main time circle"
+    },
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAyNCIgaGVpZ2h0PSI1NzYiIHZpZXdCb3g9IjAgMCAxMDI0IDU3NiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAyNCIgaGVpZ2h0PSI1NzYiIGZpbGw9IiMxNzRDNEUiLz48Y2lyY2xlIGN4PSI0MDAiIGN5PSIyODgiIHI9IjE1MCIgZmlsbD0iIzhGODhGNCIgZmlsbC1vcGFjaXR5PSIwLjgiLz48cmVjdCB4PSI2MDAiIHk9IjUwIiB3aWR0aD0iMzUwIiBoZWlnaHQ9IjQ3NiIgZmlsbD0icmdiYSgyNTUsIDI1NSwgMjU1LCAwLjEpIi8+PHRleHQgeD0iNDAwIiB5PSI1MCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjQiPlF1YXJ0ZXJ0aW1lPC90ZXh0Pjx0ZXh0IHg9Ijc3NSIgeT0iMTAwIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIxOCI+VGFzayBMaXN0PC90ZXh0Pjwvc3ZnPg==",
+      "sizes": "1024x576",
+      "type": "image/svg+xml",
+      "form_factor": "wide",
+      "label": "Desktop view showing fractal circle and task panel"
+    }
+  ],
   "icons": [
-    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
-    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"}
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjE5MiIgaGVpZ2h0PSIxOTIiIHJ4PSI0OCIgZmlsbD0iIzE3NEM0RSIvPjxjaXJjbGUgY3g9Ijk2IiBjeT0iOTYiIHI9IjcwIiBmaWxsPSJub25lIiBzdHJva2U9IiM4Rjg4RjQiIHN0cm9rZS13aWR0aD0iOCIvPjxjaXJjbGUgY3g9Ijk2IiBjeT0iOTYiIHI9IjQ1IiBmaWxsPSJub25lIiBzdHJva2U9IiNEREU5RTAiIHN0cm9rZS13aWR0aD0iNiIvPjxjaXJjbGUgY3g9Ijk2IiBjeT0iOTYiIHI9IjI1IiBmaWxsPSIjOEY4OEY0Ii8+PHBhdGggZD0iTTk2IDI2VjQ2TTk2IDE0NlYxNjZNMjYgOTZINDZNMTQ2IDk2SDE2NiIgc3Ryb2tlPSIjRERFOUUwIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjx0ZXh0IHg9Ijk2IiB5PSIxMDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCI+UTwvdGV4dD48L3N2Zz4=",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSIxMjgiIGZpbGw9IiMxNzRDNEUiLz48Y2lyY2xlIGN4PSIyNTYiIGN5PSIyNTYiIHI9IjE4MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOEY4OEY0IiBzdHJva2Utd2lkdGg9IjIwIi8+PGNpcmNsZSBjeD0iMjU2IiBjeT0iMjU2IiByPSIxMjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0RERTE5MCIgc3Ryb2tlLXdpZHRoPSIxNiIvPjxjaXJjbGUgY3g9IjI1NiIgY3k9IjI1NiIgcj0iNjQiIGZpbGw9IiM4Rjg4RjQiLz48cGF0aCBkPSJNMjU2IDc2VjEzNk0yNTYgMzczVjQzNk03NiAyNTZIMTM5TTM3MyAyNTZINDM2IiBzdHJva2U9IiNEREU5RTAiIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjx0ZXh0IHg9IjI1NiIgeT0iMjcwIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIzMiIgZm9udC13ZWlnaHQ9ImJvbGQiPlE8L3RleHQ+PC9zdmc+",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjE5MiIgaGVpZ2h0PSIxOTIiIHJ4PSI0OCIgZmlsbD0iIzE3NEM0RSIvPjxjaXJjbGUgY3g9Ijk2IiBjeT0iOTYiIHI9IjcwIiBmaWxsPSJub25lIiBzdHJva2U9IiM4Rjg4RjQiIHN0cm9rZS13aWR0aD0iOCIvPjxjaXJjbGUgY3g9Ijk2IiBjeT0iOTYiIHI9IjQ1IiBmaWxsPSJub25lIiBzdHJva2U9IiNEREU5RTAiIHN0cm9rZS13aWR0aD0iNiIvPjxjaXJjbGUgY3g9Ijk2IiBjeT0iOTYiIHI9IjI1IiBmaWxsPSIjOEY4OEY0Ii8+PG1hc2sgaWQ9Im1hc2siPjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiBmaWxsPSJ3aGl0ZSIvPjxjaXJjbGUgY3g9Ijk2IiBjeT0iOTYiIHI9IjE1IiBmaWxsPSJibGFjayIvPjwvbWFzaz48ZyBtYXNrPSJ1cmwoI21hc2spIj48cmVjdCB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgZmlsbD0iIzE3NEM0RSIvPjwvZz48L3N2Zz4=",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "prefer_related_applications": false,
+  "related_applications": [],
+  "shortcuts": [
+    {
+      "name": "Quick Add Task",
+      "short_name": "Add Task",
+      "description": "Quickly add a new task to today",
+      "url": "./?action=quick-add",
+      "icons": [
+        {
+          "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIHZpZXdCb3g9IjAgMCA5NiA5NiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIHJ4PSIyNCIgZmlsbD0iIzhGODhGNCIvPjxwYXRoIGQ9Ik00OCAyMFY3Nk0yMCA0OEg3NiIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48L3N2Zz4=",
+          "sizes": "96x96",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "View Today",
+      "short_name": "Today",
+      "description": "View today's tasks and schedule",
+      "url": "./?view=today",
+      "icons": [
+        {
+          "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIHZpZXdCb3g9IjAgMCA5NiA5NiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIHJ4PSIyNCIgZmlsbD0iIzE3NEM0RSIvPjxjaXJjbGUgY3g9IjQ4IiBjeT0iNDgiIHI9IjI0IiBmaWxsPSIjOEY4OEY0Ii8+PHRleHQgeD0iNDgiIHk9IjUyIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiPk5PVzwvdGV4dD48L3N2Zz4=",
+          "sizes": "96x96",
+          "type": "image/svg+xml"
+        }
+      ]
+    }
+  ],
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "launch_handler": {
+    "client_mode": ["navigate-existing", "auto"]
+  },
+  "handle_links": "preferred",
+  "capture_links": "existing-client-navigate",
+  "protocol_handlers": [
+    {
+      "protocol": "web+fractalplanner",
+      "url": "./?task=%s"
+    }
+  ],
+  "file_handlers": [
+    {
+      "action": "./?import=%s",
+      "accept": {
+        "application/json": [".json"],
+        "text/csv": [".csv"]
+      }
+    }
   ]
 }
-</script>

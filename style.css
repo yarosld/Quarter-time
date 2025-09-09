@@ -1,0 +1,578 @@
+/* Fractal Planner CSS - Точна кольорова схема згідно з ТЗ */
+
+:root {
+    --bg: #174C4E;
+    --core: #8F88F4;
+    --outer-q1: #939393;
+    --outer-q2: #DD9090;
+    --outer-q3: #C3EDCF;
+    --outer-q4: #B4CEFF;
+    --mid-q1: #AFAFB5;
+    --mid-q2: #FEC6C6;
+    --mid-q3: #9EDAB0;
+    --mid-q4: #A7BBE3;
+    --text: #FFFFFF;
+    --panel-bg: rgba(255, 255, 255, 0.1);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+}
+
+.app-container {
+    display: flex;
+    height: 100vh;
+}
+
+.left-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    min-width: 300px;
+}
+
+.header {
+    position: absolute;
+    top: 20px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    z-index: 10;
+}
+
+.header h1 {
+    font-size: 24px;
+    font-weight: 300;
+    margin-bottom: 10px;
+    color: var(--text);
+}
+
+.fractal-container {
+    position: relative;
+    width: 400px;
+    height: 400px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.fractal-svg {
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+}
+
+/* SVG сектори згідно з ТЗ */
+.sector {
+    transition: all 0.2s ease;
+    cursor: pointer;
+    stroke: transparent;
+    stroke-width: 1;
+}
+
+.sector:hover {
+    opacity: 0.8;
+    transform-origin: center;
+    stroke: var(--text);
+    stroke-width: 1;
+    stroke-opacity: 0.3;
+}
+
+.sector.selected {
+    stroke: var(--text);
+    stroke-width: 2;
+    stroke-opacity: 1;
+}
+
+.bottom-panel {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    z-index: 10;
+}
+
+.quick-note {
+    flex: 1;
+    background: var(--panel-bg);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 25px;
+    padding: 12px 20px;
+    color: var(--text);
+    font-size: 16px;
+    outline: none;
+    cursor: grab;
+    transition: all 0.2s ease;
+}
+
+.quick-note::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.quick-note:focus {
+    border-color: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.quick-note.dragging {
+    cursor: grabbing;
+    opacity: 0.7;
+    transform: rotate(2deg);
+}
+
+.add-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--core);
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease;
+    font-weight: 300;
+}
+
+.add-btn:hover {
+    transform: scale(1.1);
+}
+
+.add-btn:active {
+    transform: scale(0.95);
+}
+
+.right-panel {
+    width: 320px;
+    background: var(--panel-bg);
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+}
+
+.panel-header {
+    padding: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.panel-header h2 {
+    font-size: 18px;
+    font-weight: 500;
+}
+
+.panel-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.panel-content::-webkit-scrollbar {
+    width: 4px;
+}
+
+.panel-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.panel-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+}
+
+.task-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.task-item {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+    position: relative;
+}
+
+.task-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateX(2px);
+}
+
+.task-item.priority-high {
+    border-left-color: #ff4444;
+}
+
+.task-item.priority-medium {
+    border-left-color: #ffaa44;
+}
+
+.task-item.priority-low {
+    border-left-color: #44ff44;
+}
+
+.task-title {
+    font-weight: 500;
+    margin-bottom: 4px;
+    line-height: 1.3;
+    padding-right: 30px; /* Space for delete button */
+}
+
+.task-time {
+    font-size: 12px;
+    opacity: 0.7;
+    margin-bottom: 2px;
+}
+
+.task-desc {
+    font-size: 12px;
+    opacity: 0.7;
+    margin-top: 4px;
+    line-height: 1.3;
+}
+
+.task-actions {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.task-item:hover .task-actions {
+    opacity: 1;
+}
+
+.task-delete-btn {
+    width: 20px;
+    height: 20px;
+    border: none;
+    background: rgba(255, 0, 0, 0.7);
+    color: white;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.task-delete-btn:hover {
+    background: rgba(255, 0, 0, 0.9);
+    transform: scale(1.1);
+}
+
+/* Контекстне меню */
+.context-menu {
+    background: var(--bg);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    z-index: 1000;
+    min-width: 200px;
+    backdrop-filter: blur(10px);
+}
+
+.context-menu-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s ease;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.context-menu-item:last-child {
+    border-bottom: none;
+}
+
+.context-menu-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.context-menu-item[data-action="delete-tasks"] {
+    color: #ff6b6b;
+}
+
+.context-menu-item[data-action="delete-tasks"]:hover {
+    background: rgba(255, 107, 107, 0.1);
+}
+
+/* Статус індикатор */
+.status-indicator {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.status-offline {
+    background: #ff4444;
+    color: white;
+}
+
+.status-syncing {
+    background: #ffaa44;
+    color: white;
+}
+
+.status-synced {
+    background: #44ff44;
+    color: white;
+}
+
+/* Drop target для drag&drop */
+.drop-target {
+    position: absolute;
+    pointer-events: none;
+    border: 2px dashed var(--text);
+    border-radius: 50%;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100px;
+    height: 100px;
+}
+
+.drop-target.active {
+    opacity: 0.5;
+    pointer-events: all;
+}
+
+/* Modal стилі */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-content {
+    background: var(--bg);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 24px;
+    width: 400px;
+    max-width: 90vw;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    transform: scale(1);
+    transition: transform 0.2s ease;
+}
+
+.modal:not(.hidden) .modal-content {
+    animation: modalAppear 0.2s ease-out;
+}
+
+@keyframes modalAppear {
+    from {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.modal-content h3 {
+    margin-bottom: 20px;
+    font-size: 18px;
+    font-weight: 500;
+}
+
+/* Форма стилі */
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.form-input {
+    width: 100%;
+    background: var(--panel-bg);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    padding: 10px;
+    color: var(--text);
+    font-size: 14px;
+    transition: border-color 0.2s ease;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--core);
+}
+
+.form-textarea {
+    height: 80px;
+    resize: vertical;
+    font-family: inherit;
+}
+
+.form-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+.btn {
+    padding: 10px 20px;
+    border-radius: 6px;
+    border: none;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+.btn:hover {
+    opacity: 0.8;
+    transform: translateY(-1px);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+.btn-primary {
+    background: var(--core);
+    color: white;
+}
+
+.btn-secondary {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .app-container {
+        flex-direction: column;
+    }
+    
+    .right-panel {
+        width: 100%;
+        height: 40vh;
+        border-left: none;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .fractal-container {
+        width: 300px;
+        height: 300px;
+    }
+    
+    .header h1 {
+        font-size: 20px;
+    }
+    
+    .status-indicator {
+        position: relative;
+        margin-top: 10px;
+        display: inline-block;
+    }
+    
+    .modal-content {
+        width: 90vw;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .fractal-container {
+        width: 250px;
+        height: 250px;
+    }
+    
+    .bottom-panel {
+        left: 10px;
+        right: 10px;
+    }
+    
+    .quick-note {
+        font-size: 14px;
+        padding: 10px 16px;
+    }
+    
+    .add-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+    }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+    :root {
+        --panel-bg: rgba(255, 255, 255, 0.2);
+    }
+    
+    .sector {
+        stroke: var(--text);
+        stroke-width: 1;
+    }
+    
+    .form-input {
+        border-width: 2px;
+    }
+}

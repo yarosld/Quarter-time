@@ -1,484 +1,1520 @@
-<!--
-QuarterTime — PWA MVP (Vanilla JS + TailwindCDN)
-Single-canvas delivery with three file sections:
-1) index.html  (this file)
-2) sw.js       (copy to /sw.js when deploying)
-3) manifest.json (copy to /manifest.json when deploying)
-
-Deploy steps (GitHub Pages):
-- Create a repo, add these three files at root.
-- Enable Pages (root). Commit & push.
-- Visit the Pages URL; the app should installable & offline-ready.
-
-Note on time model: per ТЗ, 90 хв = 4 × 22 хв (88 хв). У UI ми працюємо з 22-хв підблоками; 2 хв залишку на кожні 90 хв ігноруємо для простоти MVP.
--->
-
-<!-- ========================= index.html ========================= -->
-<!doctype html>
+<!DOCTYPE html>
 <html lang="uk">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>QuarterTime — PWA MVP</title>
-  <meta name="theme-color" content="#0ea5e9" />
-  <link rel="manifest" href="manifest.json">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230ea5e9'/%3E%3Cpath d='M10 10h44v44H10z' fill='white'/%3E%3Cpath d='M10 10h22v22H10z' fill='%230ea5e9'/%3E%3C/svg%3E"/>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    /* Minimal scrollbar */
-    * { scrollbar-width: thin; }
-    .grid-auto-fill-22 { grid-template-columns: repeat(auto-fill, minmax(140px,1fr)); }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fractal Planner</title>
+    <meta name="theme-color" content="#174C4E">
+    <meta name="description" content="Fractal time planning with visual quarter system">
+    <style>
+        /* Fractal Planner CSS - Точна кольорова схема згідно з ТЗ */
+
+        :root {
+            --bg: #174C4E;
+            --core: #8F88F4;
+            --outer-q1: #939393;
+            --outer-q2: #DD9090;
+            --outer-q3: #C3EDCF;
+            --outer-q4: #B4CEFF;
+            --mid-q1: #AFAFB5;
+            --mid-q2: #FEC6C6;
+            --mid-q3: #9EDAB0;
+            --mid-q4: #A7BBE3;
+            --text: #FFFFFF;
+            --panel-bg: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .left-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            min-width: 300px;
+        }
+
+        .header {
+            position: absolute;
+            top: 20px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            z-index: 10;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 300;
+            margin-bottom: 10px;
+            color: var(--text);
+        }
+
+        .fractal-container {
+            position: relative;
+            width: 400px;
+            height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .fractal-svg {
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        /* SVG сектори згідно з ТЗ */
+        .sector {
+            transition: all 0.2s ease;
+            cursor: pointer;
+            stroke: transparent;
+            stroke-width: 1;
+        }
+
+        .sector:hover {
+            opacity: 0.8;
+            transform-origin: center;
+            stroke: var(--text);
+            stroke-width: 1;
+            stroke-opacity: 0.3;
+        }
+
+        .sector.selected {
+            stroke: var(--text);
+            stroke-width: 2;
+            stroke-opacity: 1;
+        }
+
+        .bottom-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .quick-note {
+            flex: 1;
+            background: var(--panel-bg);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 25px;
+            padding: 12px 20px;
+            color: var(--text);
+            font-size: 16px;
+            outline: none;
+            cursor: grab;
+            transition: all 0.2s ease;
+        }
+
+        .quick-note::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .quick-note:focus {
+            border-color: rgba(255, 255, 255, 0.5);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .quick-note.dragging {
+            cursor: grabbing;
+            opacity: 0.7;
+            transform: rotate(2deg);
+        }
+
+        .add-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--core);
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease;
+            font-weight: 300;
+        }
+
+        .add-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .add-btn:active {
+            transform: scale(0.95);
+        }
+
+        .right-panel {
+            width: 320px;
+            background: var(--panel-bg);
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .panel-header {
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .panel-header h2 {
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        .panel-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .panel-content::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .panel-content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .panel-content::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+        }
+
+        .task-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .task-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+            position: relative;
+        }
+
+        .task-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(2px);
+        }
+
+        .task-item.priority-high {
+            border-left-color: #ff4444;
+        }
+
+        .task-item.priority-medium {
+            border-left-color: #ffaa44;
+        }
+
+        .task-item.priority-low {
+            border-left-color: #44ff44;
+        }
+
+        .task-title {
+            font-weight: 500;
+            margin-bottom: 4px;
+            line-height: 1.3;
+            padding-right: 30px; /* Space for delete button */
+        }
+
+        .task-time {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-bottom: 2px;
+        }
+
+        .task-desc {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-top: 4px;
+            line-height: 1.3;
+        }
+
+        .task-actions {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .task-item:hover .task-actions {
+            opacity: 1;
+        }
+
+        .task-delete-btn {
+            width: 20px;
+            height: 20px;
+            border: none;
+            background: rgba(255, 0, 0, 0.7);
+            color: white;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .task-delete-btn:hover {
+            background: rgba(255, 0, 0, 0.9);
+            transform: scale(1.1);
+        }
+
+        /* Контекстне меню */
+        .context-menu {
+            background: var(--bg);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            z-index: 1000;
+            min-width: 200px;
+            backdrop-filter: blur(10px);
+        }
+
+        .context-menu-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s ease;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .context-menu-item:last-child {
+            border-bottom: none;
+        }
+
+        .context-menu-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .context-menu-item[data-action="delete-tasks"] {
+            color: #ff6b6b;
+        }
+
+        .context-menu-item[data-action="delete-tasks"]:hover {
+            background: rgba(255, 107, 107, 0.1);
+        }
+
+        /* Статус індикатор */
+        .status-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .status-offline {
+            background: #ff4444;
+            color: white;
+        }
+
+        .status-syncing {
+            background: #ffaa44;
+            color: white;
+        }
+
+        .status-synced {
+            background: #44ff44;
+            color: white;
+        }
+
+        /* Drop target для drag&drop */
+        .drop-target {
+            position: absolute;
+            pointer-events: none;
+            border: 2px dashed var(--text);
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100px;
+            height: 100px;
+        }
+
+        .drop-target.active {
+            opacity: 0.5;
+            pointer-events: all;
+        }
+
+        /* Modal стилі */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal.hidden {
+            display: none;
+        }
+
+        .modal-content {
+            background: var(--bg);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 24px;
+            width: 400px;
+            max-width: 90vw;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            transform: scale(1);
+            transition: transform 0.2s ease;
+        }
+
+        .modal:not(.hidden) .modal-content {
+            animation: modalAppear 0.2s ease-out;
+        }
+
+        @keyframes modalAppear {
+            from {
+                transform: scale(0.9);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .modal-content h3 {
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        /* Форма стилі */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .form-input {
+            width: 100%;
+            background: var(--panel-bg);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            padding: 10px;
+            color: var(--text);
+            font-size: 14px;
+            transition: border-color 0.2s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--core);
+        }
+
+        .form-textarea {
+            height: 80px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        .form-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 6px;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+
+        .btn:hover {
+            opacity: 0.8;
+            transform: translateY(-1px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary {
+            background: var(--core);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .app-container {
+                flex-direction: column;
+            }
+            
+            .right-panel {
+                width: 100%;
+                height: 40vh;
+                border-left: none;
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            
+            .fractal-container {
+                width: 300px;
+                height: 300px;
+            }
+            
+            .header h1 {
+                font-size: 20px;
+            }
+            
+            .status-indicator {
+                position: relative;
+                margin-top: 10px;
+                display: inline-block;
+            }
+            
+            .modal-content {
+                width: 90vw;
+                max-height: 80vh;
+                overflow-y: auto;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .fractal-container {
+                width: 250px;
+                height: 250px;
+            }
+            
+            .bottom-panel {
+                left: 10px;
+                right: 10px;
+            }
+            
+            .quick-note {
+                font-size: 14px;
+                padding: 10px 16px;
+            }
+            
+            .add-btn {
+                width: 40px;
+                height: 40px;
+                font-size: 20px;
+            }
+        }
+
+        /* Accessibility */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* High contrast mode */
+        @media (prefers-contrast: high) {
+            :root {
+                --panel-bg: rgba(255, 255, 255, 0.2);
+            }
+            
+            .sector {
+                stroke: var(--text);
+                stroke-width: 1;
+            }
+            
+            .form-input {
+                border-width: 2px;
+            }
+        }
+    </style>
 </head>
-<body class="bg-slate-50 text-slate-900 min-h-screen">
-  <header class="sticky top-0 z-30 bg-white/70 backdrop-blur border-b border-slate-200">
-    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
-      <div class="flex items-center gap-2 font-semibold text-sky-600">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 3h18v18H3z" opacity=".15"/><path d="M3 3h9v9H3z"/></svg>
-        <span>QuarterTime</span>
-      </div>
-      <div class="ml-auto flex items-center gap-2">
-        <button id="btn-today" class="px-3 py-1.5 rounded-xl bg-sky-600 text-white hover:bg-sky-700">Сьогодні</button>
-        <select id="view-level" class="px-2 py-1.5 rounded-xl border border-slate-300 bg-white">
-          <option value="year">Рік</option>
-          <option value="quarter">Квартал</option>
-          <option value="month">Місяць</option>
-          <option value="week">Тиждень</option>
-          <option value="day" selected>День</option>
-        </select>
-        <button id="btn-prev" class="px-3 py-1.5 rounded-xl border border-slate-300 hover:bg-slate-100">◀</button>
-        <div id="title" class="font-medium min-w-[180px] text-center"></div>
-        <button id="btn-next" class="px-3 py-1.5 rounded-xl border border-slate-300 hover:bg-slate-100">▶</button>
-        <button id="btn-install" class="hidden px-3 py-1.5 rounded-xl border border-sky-300 text-sky-700 hover:bg-sky-50">Встановити</button>
-      </div>
+<body>
+    <div class="app-container">
+        <div class="left-panel">
+            <div class="header">
+                <h1>Quartertime</h1>
+                <div class="status-indicator status-offline" id="statusIndicator">Offline</div>
+            </div>
+            
+            <div class="fractal-container">
+                <svg class="fractal-svg" id="fractalSvg" viewBox="0 0 400 400">
+                    <!-- Фрактальне коло буде згенеровано тут -->
+                </svg>
+                <div class="drop-target" id="dropTarget"></div>
+            </div>
+            
+            <div class="bottom-panel">
+                <input type="text" class="quick-note" id="quickNote" placeholder="Add task" draggable="true">
+                <button class="add-btn" id="addBtn">+</button>
+            </div>
+        </div>
+        
+        <div class="right-panel">
+            <div class="panel-header">
+                <h2 id="panelTitle">All Tasks</h2>
+            </div>
+            <div class="panel-content">
+                <div class="task-list" id="taskList">
+                    <!-- Список завдань буде тут -->
+                </div>
+            </div>
+        </div>
     </div>
-  </header>
 
-  <main class="max-w-6xl mx-auto p-4 grid md:grid-cols-3 gap-4">
-    <!-- Planner / Checklist -->
-    <section class="md:col-span-1">
-      <div class="bg-white rounded-2xl shadow p-4 space-y-4">
-        <h2 class="text-lg font-semibold">Чек-ліст ➜ події [QT]</h2>
-        <textarea id="checklist" class="w-full h-40 rounded-xl border border-slate-300 p-3" placeholder="Кожен рядок = задача.\nВикористовуйте #теги напр.: \nВправи 22хв #спорт\nАнглійська 44хв #навчання"></textarea>
-        <div class="flex items-center gap-2">
-          <label class="text-sm">Тривалість за замовч.: </label>
-          <select id="default-duration" class="px-2 py-1 rounded-xl border border-slate-300">
-            <option value="22">22 хв</option>
-            <option value="44">44 хв</option>
-            <option value="66">66 хв</option>
-            <option value="88">88 хв</option>
-          </select>
-          <button id="btn-create-events" class="ml-auto px-3 py-1.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700">Створити події</button>
+    <!-- Modal для створення/редагування завдання -->
+    <div class="modal hidden" id="taskModal">
+        <div class="modal-content">
+            <h3 id="modalTitle">Create Task</h3>
+            <form id="taskForm">
+                <div class="form-group">
+                    <label class="form-label">Title</label>
+                    <input type="text" class="form-input" id="taskTitleInput" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-input form-textarea" id="taskDescInput"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Priority</label>
+                    <select class="form-input" id="taskPriorityInput">
+                        <option value="low">Low</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+                <div class="form-buttons">
+                    <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="saveBtn">Save</button>
+                </div>
+            </form>
         </div>
-        <div class="text-xs text-slate-500">* Події розкладаються по 22-хв слотах обраного дня. У назву додається мітка [QT].</div>
-        <div class="flex gap-2">
-          <button id="btn-export-ics" class="px-3 py-1.5 rounded-xl border border-slate-300 hover:bg-slate-50">Експорт .ics</button>
-          <input id="ics-file" type="file" accept="text/calendar,.ics" class="hidden" />
-          <button id="btn-import-ics" class="px-3 py-1.5 rounded-xl border border-slate-300 hover:bg-slate-50">Імпорт .ics</button>
-        </div>
-        <div class="flex gap-2">
-          <button id="btn-gcal-sync" class="px-3 py-1.5 rounded-xl border border-slate-300 hover:bg-slate-50">Google Sync (stub)</button>
-          <button id="btn-clear" class="ml-auto px-3 py-1.5 rounded-xl text-rose-700 border border-rose-200 hover:bg-rose-50">Очистити все</button>
-        </div>
-      </div>
-    </section>
+    </div>
+    <script>
+        /**
+         * Fractal Planner - Головний JavaScript модуль
+         * Реалізує фрактальне планування завдань згідно з ТЗ
+         */
 
-    <!-- Calendar -->
-    <section class="md:col-span-2">
-      <div class="bg-white rounded-2xl shadow p-4 space-y-4">
-        <h2 class="text-lg font-semibold">Календар QuarterTime</h2>
-        <div id="calendar" class="space-y-3"></div>
-      </div>
-    </section>
-  </main>
+        // Точні геометричні розрахунки згідно з ТЗ
+        class FractalGeometry {
+            static polarToCartesian(cx, cy, r, angleRad) {
+                return {
+                    x: cx + r * Math.cos(angleRad),
+                    y: cy + r * Math.sin(angleRad)
+                };
+            }
 
-  <footer class="max-w-6xl mx-auto p-4 text-xs text-slate-500">
-    PWA офлайн-режим, IndexedDB збереження, .ics експорт/імпорт, Google Calendar stub.
-  </footer>
+            static arcPath(cx, cy, rInner, rOuter, startAngle, endAngle) {
+                const a1 = this.polarToCartesian(cx, cy, rOuter, endAngle);
+                const a2 = this.polarToCartesian(cx, cy, rOuter, startAngle);
+                const b1 = this.polarToCartesian(cx, cy, rInner, startAngle);
+                const b2 = this.polarToCartesian(cx, cy, rInner, endAngle);
+                const largeArcFlag = (endAngle - startAngle) % (2 * Math.PI) > Math.PI ? 1 : 0;
+                
+                const path = [
+                    `M ${a1.x} ${a1.y}`,
+                    `A ${rOuter} ${rOuter} 0 ${largeArcFlag} 0 ${a2.x} ${a2.y}`,
+                    `L ${b1.x} ${b1.y}`,
+                    `A ${rInner} ${rInner} 0 ${largeArcFlag} 1 ${b2.x} ${b2.y}`,
+                    'Z'
+                ].join(' ');
+                return path;
+            }
 
-  <script>
-  // ===================== Utility & Storage (IndexedDB wrapper) =====================
-  const DB_NAME = 'quartertime-db';
-  const DB_VERSION = 1;
-  const STORE_EVENTS = 'events';
+            static hitTest(x, y, cx, cy, R) {
+                const dx = x - cx;
+                const dy = y - cy;
+                const dist = Math.hypot(dx, dy);
+                
+                // Корегуємо кут для нової орієнтації
+                let angle = Math.atan2(dy, dx) + Math.PI / 4; // Зміщуємо на +45°
+                angle = (angle + 2 * Math.PI) % (2 * Math.PI); // Нормалізуємо
 
-  function openDB() {
-    return new Promise((resolve, reject) => {
-      const req = indexedDB.open(DB_NAME, DB_VERSION);
-      req.onupgradeneeded = (e) => {
-        const db = req.result;
-        if (!db.objectStoreNames.contains(STORE_EVENTS)) {
-          db.createObjectStore(STORE_EVENTS, { keyPath: 'id' });
+                const R_core = 0.5 * R;
+                const R_middle_inner = 0.5 * R;
+                const R_middle_outer = 0.75 * R;
+                const R_outer_inner = 0.75 * R;
+                const R_outer = 1.0 * R;
+
+                if (dist <= R_core) return { ring: 'core' };
+
+                if (dist > R_middle_inner && dist <= R_middle_outer) {
+                    const numSmall = 16;
+                    const anglePer = 2 * Math.PI / numSmall;
+                    const index = Math.floor(angle / anglePer);
+                    const quarter = Math.floor(index / 4);
+                    return { ring: 'middle', index, quarter };
+                }
+
+                if (dist > R_outer_inner && dist <= R_outer) {
+                    const quarter = Math.floor(angle / (Math.PI / 2));
+                    return { ring: 'outer', quarter };
+                }
+
+                return null;
+            }
         }
-      };
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
-    });
-  }
 
-  async function idbGetAll() {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_EVENTS, 'readonly');
-      const store = tx.objectStore(STORE_EVENTS);
-      const req = store.getAll();
-      req.onsuccess = () => resolve(req.result || []);
-      req.onerror = () => reject(req.error);
-    });
-  }
+        // Головний клас фрактального кола
+        class FractalCircle {
+            constructor(svgElement) {
+                this.svg = svgElement;
+                this.cx = 200;
+                this.cy = 200;
+                this.R = 160; // Базовий радіус
+                this.selectedSector = null;
+                this.onSectorClick = null;
+                this.onSectorDrop = null;
+                this.onSectorTasksDelete = null;
+                
+                this.init();
+            }
 
-  async function idbPut(event) {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_EVENTS, 'readwrite');
-      const store = tx.objectStore(STORE_EVENTS);
-      const req = store.put(event);
-      req.onsuccess = () => resolve(true);
-      req.onerror = () => reject(req.error);
-    });
-  }
+            init() {
+                this.renderCircle();
+                this.addEventListeners();
+            }
 
-  async function idbBulkPut(events) {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_EVENTS, 'readwrite');
-      const store = tx.objectStore(STORE_EVENTS);
-      events.forEach(ev => store.put(ev));
-      tx.oncomplete = () => resolve(true);
-      tx.onerror = () => reject(tx.error);
-    });
-  }
+            renderCircle() {
+                this.svg.innerHTML = '';
+                
+                // Кольори згідно з ТЗ
+                const outerColors = ['var(--outer-q1)', 'var(--outer-q2)', 'var(--outer-q3)', 'var(--outer-q4)'];
+                const middleColors = ['var(--mid-q1)', 'var(--mid-q2)', 'var(--mid-q3)', 'var(--mid-q4)'];
+                
+                // Створюємо gradients для кращої візуалізації
+                const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+                this.svg.appendChild(defs);
 
-  async function idbDelete(id) {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_EVENTS, 'readwrite');
-      const store = tx.objectStore(STORE_EVENTS);
-      const req = store.delete(id);
-      req.onsuccess = () => resolve(true);
-      req.onerror = () => reject(req.error);
-    });
-  }
-
-  async function idbClear() {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_EVENTS, 'readwrite');
-      const store = tx.objectStore(STORE_EVENTS);
-      const req = store.clear();
-      req.onsuccess = () => resolve(true);
-      req.onerror = () => reject(req.error);
-    });
-  }
-
-  // ===================== Time Model (Year → Quarter → Month → Week → Day → Blocks) =====================
-  function startOfDay(d) { const x = new Date(d); x.setHours(0,0,0,0); return x; }
-  function addMinutes(d, m) { return new Date(d.getTime() + m*60000); }
-  function fmtHM(d) { return d.toTimeString().slice(0,5); }
-  function ymd(d){return d.toISOString().slice(0,10);} 
-
-  // Day → 4 × 6 год квартали; кожний 6 год = 4 × 90 хв блоки; кожний 90 хв ≈ 4 × 22 хв підблоки
-  function makeDayGrid(date) {
-    const dayStart = startOfDay(date);
-    const quarters = [];
-    for (let q=0; q<4; q++) {
-      const qStart = addMinutes(dayStart, q*6*60);
-      const blocks = [];
-      for (let b=0; b<4; b++) {
-        const bStart = addMinutes(qStart, b*90);
-        const sub = [];
-        for (let s=0; s<4; s++) {
-          const sStart = addMinutes(bStart, s*22); // 22-хв слоти
-          sub.push({ start: sStart, end: addMinutes(sStart, 22)});
+                // Рендеримо зовнішнє кільце (4 сектори)
+                const angleOffset = -Math.PI / 2;
+        // Рендеримо зовнішнє кільце (4 сектори)
+        for (let q = 0; q < 4; q++) {
+            const startAngle = q * Math.PI / 2 + angleOffset;
+			const endAngle = (q + 1) * Math.PI / 2 + angleOffset;
+            
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('d', FractalGeometry.arcPath(
+                this.cx, this.cy, 
+                0.75 * this.R, this.R, 
+                startAngle, endAngle
+            ));
+            path.setAttribute('fill', outerColors[q]);
+            path.classList.add('sector', 'outer-sector');
+            path.dataset.ring = 'outer';
+            path.dataset.quarter = q;
+            
+            this.svg.appendChild(path);
         }
-        blocks.push({ start: bStart, end: addMinutes(bStart, 90), sub });
-      }
-      quarters.push({ start: qStart, end: addMinutes(qStart, 6*60), blocks });
-    }
-    return { date: ymd(date), quarters };
-  }
 
-  // ===================== Rendering =====================
-  const state = {
-    cursor: startOfDay(new Date()),
-    level: 'day',
-    deferredPrompt: null,
-    events: [] // {id, title, note, tags[], start, end, done:boolean}
-  };
-
-  function setTitle() {
-    const t = document.getElementById('title');
-    const d = state.cursor;
-    const opts = { day: '2-digit', month: 'short', year: 'numeric' };
-    if (state.level === 'day') {
-      t.textContent = d.toLocaleDateString(undefined, opts);
-    } else if (state.level === 'week') {
-      const start = new Date(d); const day = d.getDay();
-      const diff = (day === 0 ? -6 : 1 - day); // ISO week start Mon
-      start.setDate(d.getDate() + diff);
-      const end = new Date(start); end.setDate(start.getDate()+6);
-      t.textContent = `${start.toLocaleDateString()} – ${end.toLocaleDateString()}`;
-    } else if (state.level === 'month') {
-      t.textContent = d.toLocaleDateString(undefined, { month:'long', year:'numeric' });
-    } else if (state.level === 'quarter') {
-      const q = Math.floor(d.getMonth()/3)+1;
-      t.textContent = `Q${q} ${d.getFullYear()}`;
-    } else {
-      t.textContent = `${d.getFullYear()}`;
-    }
-  }
-
-  function tagPills(tags) {
-    return tags.map(tag=>`<span class='px-2 py-0.5 rounded-full text-xs border border-slate-200'>${tag}</span>`).join('');
-  }
-
-  function renderDay() {
-    const cal = document.getElementById('calendar');
-    cal.innerHTML = '';
-    const grid = makeDayGrid(state.cursor);
-    const dayEvents = state.events.filter(e => ymd(new Date(e.start)) === grid.date).sort((a,b)=> new Date(a.start)-new Date(b.start));
-
-    grid.quarters.forEach((q, qi) => {
-      const section = document.createElement('div');
-      section.className = 'border border-slate-200 rounded-2xl overflow-hidden';
-
-      const header = document.createElement('div');
-      header.className = 'px-3 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between';
-      header.innerHTML = `<div class='font-medium'>Квартал ${qi+1} (${fmtHM(q.start)} – ${fmtHM(q.end)})</div>`;
-      section.appendChild(header);
-
-      const blocksWrap = document.createElement('div');
-      blocksWrap.className = 'grid grid-cols-1 sm:grid-cols-2 gap-3 p-3';
-
-      q.blocks.forEach((b, bi) => {
-        const card = document.createElement('div');
-        card.className = 'rounded-xl border border-slate-200 p-3';
-        const subHTML = b.sub.map((s, si)=>{
-          const slotEvents = dayEvents.filter(e=> new Date(e.start).getTime() === s.start.getTime());
-          const evs = slotEvents.map(e=>`
-            <div class='mt-1 text-sm flex items-center gap-2'>
-              <input type='checkbox' data-ev='${e.id}' ${e.done?'checked':''} class='ev-done accent-emerald-600'>
-              <span class='font-medium'>${e.title}</span>
-              <span class='text-xs text-slate-500'>${fmtHM(new Date(e.start))}-${fmtHM(new Date(e.end))}</span>
-              <span class='ml-auto flex gap-1'>${tagPills(e.tags)}</span>
-              <button class='text-rose-600 text-xs border border-rose-200 px-2 py-0.5 rounded delete-ev' data-ev='${e.id}'>×</button>
-            </div>`).join('');
-          return `<div class='border border-slate-100 rounded-lg p-2'>
-            <div class='text-xs text-slate-500'>Підблок ${si+1} (${fmtHM(s.start)} – ${fmtHM(s.end)})</div>
-            ${evs || `<div class='text-xs text-slate-400 italic'>порожньо</div>`}
-          </div>`;
-        }).join('');
-        card.innerHTML = `<div class='text-sm font-medium'>Блок ${bi+1} (${fmtHM(b.start)} – ${fmtHM(b.end)})</div><div class='mt-2 grid gap-2'>${subHTML}</div>`;
-        blocksWrap.appendChild(card);
-      });
-
-      section.appendChild(blocksWrap);
-      cal.appendChild(section);
-    });
-
-    // bind checkbox & delete
-    cal.querySelectorAll('.ev-done').forEach(cb => {
-      cb.addEventListener('change', async (e)=>{
-        const id = e.target.getAttribute('data-ev');
-        const ev = state.events.find(x=>x.id===id);
-        if (ev){ ev.done = e.target.checked; await idbPut(ev); }
-      });
-    });
-    cal.querySelectorAll('.delete-ev').forEach(btn=>{
-      btn.addEventListener('click', async ()=>{
-        const id = btn.getAttribute('data-ev');
-        await idbDelete(id);
-        state.events = await idbGetAll();
-        render();
-      });
-    });
-  }
-
-  function render() {
-    setTitle();
-    if (state.level === 'day') renderDay();
-    else {
-      const cal = document.getElementById('calendar');
-      cal.innerHTML = `<div class='p-6 text-slate-500'>У цьому MVP реалізовано детальний вигляд дня. Перемикач рівнів працює для заголовка та навігації.</div>`;
-    }
-  }
-
-  // ===================== Event creation from checklist =====================
-  function parseLine(line, defaultMinutes){
-    let mins = defaultMinutes;
-    const m = line.match(/(\d{2})\s*х?\s*х?\s*?х?\s*?х?\s*?х?\s*?х?\s*?х?\s*?х?\s*?х?\s*?х?\s*?х?\s*?\s*?х?\s*?х?\s*?/i); // lenient, keep default
-    const dur = line.match(/(22|44|66|88)\s*х?\s*?х?\s*?в?х?м?в?/i);
-    if (dur) mins = parseInt(dur[1],10);
-    const tags = Array.from(line.matchAll(/#\S+/g)).map(x=>x[0]);
-    const title = line.replace(/#\S+/g,'').replace(/\s*(22|44|66|88)\s*.*$/,'').trim();
-    return { title: title || 'Задача', mins, tags };
-  }
-
-  function nextFreeSlot(date, mins, takenStarts){
-    const grid = makeDayGrid(date);
-    for (const q of grid.quarters){
-      for (const b of q.blocks){
-        for (const s of b.sub){
-          const key = s.start.getTime();
-          if (!takenStarts.has(key) && mins % 22 === 0) return { start:s.start, end:addMinutes(s.start, mins) };
+                // Рендеримо середнє кільце (16 секторів)
+        for (let i = 0; i < 16; i++) {
+            const startAngle = i * Math.PI / 8 + angleOffset;
+            const endAngle = (i + 1) * Math.PI / 8 + angleOffset;
+            const quarter = Math.floor(i / 4);
+            
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('d', FractalGeometry.arcPath(
+                this.cx, this.cy, 
+                0.5 * this.R, 0.75 * this.R, 
+                startAngle, endAngle
+            ));
+            path.setAttribute('fill', middleColors[quarter]);
+            path.classList.add('sector', 'middle-sector');
+            path.dataset.ring = 'middle';
+            path.dataset.index = i;
+            path.dataset.quarter = quarter;
+            
+            this.svg.appendChild(path);
         }
-      }
-    }
-    return null;
-  }
 
-  async function createEventsFromChecklist(){
-    const textarea = document.getElementById('checklist');
-    const def = parseInt(document.getElementById('default-duration').value,10);
-    const lines = textarea.value.split(/\n+/).map(l=>l.trim()).filter(Boolean);
-    if (!lines.length) return;
+                // Рендеримо ядро
+                const core = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                core.setAttribute('cx', this.cx);
+                core.setAttribute('cy', this.cy);
+                core.setAttribute('r', 0.5 * this.R);
+                core.setAttribute('fill', 'var(--core)');
+                core.classList.add('sector', 'core-sector');
+                core.dataset.ring = 'core';
+                this.svg.appendChild(core);
 
-    const date = state.cursor;
-    const existing = (await idbGetAll()).filter(e=> ymd(new Date(e.start)) === ymd(date));
-    const taken = new Set(existing.map(e=> new Date(e.start).getTime()));
+                // Додаємо підписи
+                this.addLabels();
+            }
 
-    const newEvents = [];
-    for (const line of lines){
-      const { title, mins, tags } = parseLine(line, def);
-      const slot = nextFreeSlot(date, mins, taken);
-      if (!slot) continue;
-      const id = crypto.randomUUID();
-      taken.add(slot.start.getTime());
-      newEvents.push({ id, title: `${title} [QT]`, note: '', tags, start: slot.start.toISOString(), end: slot.end.toISOString(), done:false });
-    }
-    if (newEvents.length){
-      await idbBulkPut(newEvents);
-      state.events = await idbGetAll();
-      render();
-    }
-  }
+           
+                addLabels() {
+        // Підписи для зовнішнього кільця
+const outerLabels = [
+    '01:00–07:00',
+    '07:00–13:00',
+    '13:00–19:00',
+    '19:00–01:00'
+];
 
-  // ===================== ICS Export/Import =====================
-  function toICS(events){
-    const lines = [
-      'BEGIN:VCALENDAR',
-      'VERSION:2.0',
-      'PRODID:-//QuarterTime//MVP//UA'
-    ];
-    for (const e of events){
-      lines.push(
-        'BEGIN:VEVENT',
-        `UID:${e.id}`,
-        `DTSTAMP:${new Date().toISOString().replace(/[-:]/g,'').replace(/\..+/,'Z')}`,
-        `DTSTART:${e.start.replace(/[-:]/g,'').replace(/\..+/,'Z')}`,
-        `DTEND:${e.end.replace(/[-:]/g,'').replace(/\..+/,'Z')}`,
-        `SUMMARY:${e.title}`,
-        `DESCRIPTION:${(e.note||'') + (e.tags?.length? '\n' + e.tags.join(' '):'')}`,
-        'END:VEVENT'
-      );
-    }
-    lines.push('END:VCALENDAR');
-    return lines.join('\r\n');
-  }
+// Зсув, щоб починати з верхнього правого сектору
+const angleOffset = -Math.PI / 2;
 
-  function downloadICS(){
-    const qtEvents = state.events.sort((a,b)=> new Date(a.start)-new Date(b.start));
-    const ics = toICS(qtEvents);
-    const blob = new Blob([ics], {type:'text/calendar'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `QuarterTime_${ymd(new Date())}.ics`;
-    a.click(); URL.revokeObjectURL(url);
-  }
+for (let q = 0; q < 4; q++) {
+    // середина кута для підпису
+    const midAngle = (q + 0.5) * Math.PI / 2 + angleOffset;
 
-  function importICS(text){
-    // Minimal ICS reader: DTSTART, DTEND, SUMMARY parsed; assumes UTC Z format
-    const events = [];
-    const blocks = text.split('BEGIN:VEVENT').slice(1);
-    for (const b of blocks){
-      const uid = (b.match(/UID:([^\r\n]+)/)||[])[1] || crypto.randomUUID();
-      const start = (b.match(/DTSTART:([^\r\n]+)/)||[])[1];
-      const end = (b.match(/DTEND:([^\r\n]+)/)||[])[1];
-      const sum = (b.match(/SUMMARY:([^\r\n]+)/)||[])[1] || 'Подія [QT]';
-      const desc = (b.match(/DESCRIPTION:([^\r\n]+)/)||[])[1] || '';
-      const tags = Array.from(desc.matchAll(/#\S+/g)).map(x=>x[0]);
-      if (start && end){
-        events.push({ id: uid, title: sum, note: desc, tags, start: icsToISO(start), end: icsToISO(end), done:false });
-      }
-    }
-    return events;
-  }
+    // радіус, на якому буде текст
+    const rText = (0.75 * this.R + this.R) / 2;
 
-  function icsToISO(v){
-    // 20250131T120000Z -> 2025-01-31T12:00:00.000Z
-    const m = v.match(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z/);
-    if (!m) return new Date().toISOString();
-    const [_,y,mo,d,h,mi,s] = m;
-    return new Date(Date.UTC(+y, +mo-1, +d, +h, +mi, +s)).toISOString();
-  }
+    // конвертуємо в координати
+    const pos = FractalGeometry.polarToCartesian(this.cx, this.cy, rText, midAngle);
 
-  // ===================== Google Calendar (stub) =====================
-  async function googleSyncStub(){
-    alert('Google Sync (stub):\nЦей MVP не містить OAuth.\nПередбачено: створення подій з міткою [QT] у вашому Google Calendar через gapi.');
-  }
+    // створюємо текстовий елемент
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', pos.x);
+    text.setAttribute('y', pos.y);
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('dominant-baseline', 'middle');
+    text.setAttribute('fill', 'var(--text)');
+    text.setAttribute('font-size', '10');
+    text.setAttribute('font-weight', 'bold');
+    text.style.pointerEvents = 'none';
+    text.style.userSelect = 'none';
 
-  // ===================== Navigation & Init =====================
-  async function load(){
-    state.events = await idbGetAll();
-    render();
-  }
+    // багаторядковий текст (Q + години)
+    const lines = outerLabels[q].split('\n');
+    lines.forEach((line, i) => {
+        const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+        tspan.setAttribute('x', pos.x);
+        tspan.setAttribute('dy', i === 0 ? 0 : '1.2em');
+        tspan.textContent = line;
+        text.appendChild(tspan);
+    });
 
-  document.getElementById('view-level').addEventListener('change', (e)=>{
-    state.level = e.target.value; render();
-  });
-  document.getElementById('btn-prev').addEventListener('click', ()=>{
-    const d = new Date(state.cursor);
-    if (state.level==='day') d.setDate(d.getDate()-1);
-    else if (state.level==='week') d.setDate(d.getDate()-7);
-    else if (state.level==='month') d.setMonth(d.getMonth()-1);
-    else if (state.level==='quarter') d.setMonth(d.getMonth()-3);
-    else d.setFullYear(d.getFullYear()-1);
-    state.cursor = startOfDay(d); render();
-  });
-  document.getElementById('btn-next').addEventListener('click', ()=>{
-    const d = new Date(state.cursor);
-    if (state.level==='day') d.setDate(d.getDate()+1);
-    else if (state.level==='week') d.setDate(d.getDate()+7);
-    else if (state.level==='month') d.setMonth(d.getMonth()+1);
-    else if (state.level==='quarter') d.setMonth(d.getMonth()+3);
-    else d.setFullYear(d.getFullYear()+1);
-    state.cursor = startOfDay(d); render();
-  });
-  document.getElementById('btn-today').addEventListener('click', ()=>{ state.cursor = startOfDay(new Date()); render(); });
-  document.getElementById('btn-create-events').addEventListener('click', createEventsFromChecklist);
-  document.getElementById('btn-export-ics').addEventListener('click', downloadICS);
-  document.getElementById('btn-import-ics').addEventListener('click', ()=> document.getElementById('ics-file').click());
-  document.getElementById('ics-file').addEventListener('change', async (e)=>{
-    const file = e.target.files[0]; if (!file) return;
-    const text = await file.text();
-    const list = importICS(text);
-    await idbBulkPut(list); state.events = await idbGetAll(); render();
-  });
-  document.getElementById('btn-gcal-sync').addEventListener('click', googleSyncStub);
-  document.getElementById('btn-clear').addEventListener('click', async ()=>{ if (confirm('Видалити всі події [QT]?')) { await idbClear(); state.events = []; render(); } });
+    this.svg.appendChild(text);
+}
 
-  // PWA install prompt
-  window.addEventListener('beforeinstallprompt', (e)=>{
-    e.preventDefault(); state.deferredPrompt = e;
-    document.getElementById('btn-install').classList.remove('hidden');
-  });
-  document.getElementById('btn-install').addEventListener('click', async ()=>{
-    if (!state.deferredPrompt) return; state.deferredPrompt.prompt();
-    await state.deferredPrompt.userChoice; state.deferredPrompt = null;
-    document.getElementById('btn-install').classList.add('hidden');
-  });
 
-  // Register SW
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', ()=> navigator.serviceWorker.register('./sw.js'));
-  }
+        // Підписи для середнього кільця
+        // Підписи для середнього кільця (16 підкварталів по 90 хв)
+const middleLabels = [
+  '01:00–02:30', '02:30–04:00', '04:00–05:30', '05:30–07:00', // Q1
+  '07:00–08:30', '08:30–10:00', '10:00–11:30', '11:30–13:00', // Q2
+  '13:00–14:30', '14:30–16:00', '16:00–17:30', '17:30–19:00', // Q3
+  '19:00–20:30', '20:30–22:00', '22:00–23:30', '23:30–01:00'  // Q4
+];
 
-  load();
-  </script>
+
+
+for (let i = 0; i < 16; i++) {
+    const midAngle = (i + 0.5) * Math.PI / 8 + angleOffset;
+    const rText = (0.5 * this.R + 0.75 * this.R) / 2;
+    const pos = FractalGeometry.polarToCartesian(this.cx, this.cy, rText, midAngle);
+    const quarter = Math.floor(i / 4);
+
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', pos.x);
+    text.setAttribute('y', pos.y);
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('dominant-baseline', 'middle');
+    text.setAttribute('fill', 'black');
+    text.setAttribute('font-size', '8');
+    text.style.pointerEvents = 'none';
+    text.style.userSelect = 'none';
+
+    
+
+    // 2 рядок: час
+    const tspan2 = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+    tspan2.setAttribute('x', pos.x);
+    tspan2.setAttribute('dy', '1.1em');
+    tspan2.textContent = middleLabels[i];
+    text.appendChild(tspan2);
+
+    this.svg.appendChild(text);
+}
+
+                // Підпис для ядра
+                const coreText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                coreText.setAttribute('x', this.cx);
+                coreText.setAttribute('y', this.cy);
+                coreText.setAttribute('text-anchor', 'middle');
+                coreText.setAttribute('dominant-baseline', 'middle');
+                coreText.setAttribute('fill', 'var(--text)');
+                coreText.setAttribute('font-size', '16');
+                coreText.setAttribute('font-weight', 'bold');
+                coreText.textContent = 'NOW';
+                coreText.style.pointerEvents = 'none';
+                coreText.style.userSelect = 'none';
+                
+                this.svg.appendChild(coreText);
+            }
+
+            generateMiddleTimeLabels() {
+                const labels = [];
+                const quarterTimes = [
+                    ['01:00', '02:30', '04:00', '05:30'], // q1
+                    ['07:00', '08:30', '10:00', '11:30'], // q2
+                    ['13:00', '14:30', '16:00', '17:30'], // q3
+                    ['19:00', '20:30', '22:00', '23:30']  // q4
+                ];
+
+                for (let q = 0; q < 4; q++) {
+                    for (let sub = 0; sub < 4; sub++) {
+                        const startTime = quarterTimes[q][sub];
+                        const endTime = sub === 3 ? quarterTimes[(q + 1) % 4][0] : quarterTimes[q][sub + 1];
+                        labels.push(`${startTime}-${endTime}`);
+                    }
+                }
+
+                return labels;
+            }
+
+            addEventListeners() {
+                this.svg.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('sector')) {
+                        this.handleSectorClick(e.target);
+                    }
+                });
+
+                // Контекстне меню для видалення завдань
+                this.svg.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    if (e.target.classList.contains('sector')) {
+                        this.handleSectorRightClick(e.target, e);
+                    }
+                });
+
+                // Drag & drop підтримка
+                this.svg.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    document.getElementById('dropTarget').classList.add('active');
+                });
+
+                this.svg.addEventListener('dragleave', (e) => {
+                    if (!this.svg.contains(e.relatedTarget)) {
+                        document.getElementById('dropTarget').classList.remove('active');
+                    }
+                });
+
+                this.svg.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    document.getElementById('dropTarget').classList.remove('active');
+                    this.handleDrop(e);
+                });
+            }
+
+            handleSectorClick(sector) {
+                // Очищаємо попередній вибір
+                this.svg.querySelectorAll('.sector.selected').forEach(s => {
+                    s.classList.remove('selected');
+                });
+                
+                // Позначаємо новий вибір
+                sector.classList.add('selected');
+                this.selectedSector = {
+                    ring: sector.dataset.ring,
+                    quarter: parseInt(sector.dataset.quarter) || 0,
+                    index: parseInt(sector.dataset.index) || 0
+                };
+
+                if (this.onSectorClick) {
+                    this.onSectorClick(this.selectedSector);
+                }
+            }
+
+            handleSectorRightClick(sector, event) {
+                const sectorInfo = {
+                    ring: sector.dataset.ring,
+                    quarter: parseInt(sector.dataset.quarter) || 0,
+                    index: parseInt(sector.dataset.index) || 0
+                };
+
+                this.showContextMenu(event.clientX, event.clientY, sectorInfo);
+            }
+
+            showContextMenu(x, y, sectorInfo) {
+                // Видаляємо існуюче меню
+                const existingMenu = document.getElementById('contextMenu');
+                if (existingMenu) {
+                    existingMenu.remove();
+                }
+
+                const menu = document.createElement('div');
+                menu.id = 'contextMenu';
+                menu.className = 'context-menu';
+                menu.style.position = 'fixed';
+                menu.style.left = x + 'px';
+                menu.style.top = y + 'px';
+                menu.innerHTML = `
+                    <div class="context-menu-item" data-action="delete-tasks">
+                        Delete all tasks from this sector
+                    </div>
+                `;
+
+                menu.addEventListener('click', (e) => {
+                    if (e.target.dataset.action === 'delete-tasks') {
+                        this.deleteSectorTasks(sectorInfo);
+                    }
+                    menu.remove();
+                });
+
+                // Видаляємо меню при кліку поза ним
+                document.addEventListener('click', () => {
+                    menu.remove();
+                }, { once: true });
+
+                document.body.appendChild(menu);
+            }
+
+            async deleteSectorTasks(sectorInfo) {
+                if (confirm('Are you sure you want to delete all tasks from this sector?')) {
+                    // Тут викликаємо функцію видалення через головний клас
+                    if (this.onSectorTasksDelete) {
+                        await this.onSectorTasksDelete(sectorInfo);
+                    }
+                }
+            }
+
+            handleDrop(e) {
+                const rect = this.svg.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                // Масштабуємо координати до SVG viewBox
+                const scaleX = 400 / rect.width;
+                const scaleY = 400 / rect.height;
+                const svgX = x * scaleX;
+                const svgY = y * scaleY;
+                
+                const hit = FractalGeometry.hitTest(svgX, svgY, this.cx, this.cy, this.R);
+                
+                if (hit && this.onSectorDrop) {
+                    this.onSectorDrop(hit, e.dataTransfer.getData('text/plain'));
+                }
+            }
+
+            getSectorInfo(ring, quarter, index = 0) {
+                return {
+                    ring,
+                    quarter,
+                    index,
+                    cycle: ring === 'outer' ? 'quarterly' : ring === 'middle' ? 'monthly' : 'daily'
+                };
+            }
+        }
+
+        // База даних (localStorage для простоти в цьому прикладі)
+        class TaskDB {
+            constructor() {
+                this.storageKey = 'fractal-planner-tasks';
+            }
+
+            generateId() {
+                return 'task_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            }
+
+            async createTask(taskData) {
+                const task = {
+                    id: this.generateId(),
+                    title: taskData.title || 'Untitled Task',
+                    description: taskData.description || '',
+                    start: taskData.start || new Date().toISOString(),
+                    end: taskData.end || new Date(Date.now() + 3600000).toISOString(),
+                    cycle: taskData.cycle || 'daily',
+                    level: taskData.level || 0,
+                    sectorIndex: taskData.sectorIndex || 0,
+                    status: taskData.status || 'not_started',
+                    priority: taskData.priority || 'medium',
+                    tags: taskData.tags || [],
+                    important: taskData.important || false,
+                    checklist: [],
+                    attachments: [],
+                    parentId: null,
+                    childrenIds: [],
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    archived: false
+                };
+
+                const tasks = this.getAllTasks();
+                tasks.push(task);
+                localStorage.setItem(this.storageKey, JSON.stringify(tasks));
+                
+                return task;
+            }
+
+            getAllTasks() {
+                const stored = localStorage.getItem(this.storageKey);
+                return stored ? JSON.parse(stored) : [];
+            }
+
+            async getTasks() {
+                return this.getAllTasks().filter(task => !task.archived);
+            }
+
+            async getTasksBySector(cycle, sectorIndex) {
+                const tasks = this.getAllTasks();
+                return tasks.filter(task => 
+                    !task.archived && 
+                    task.cycle === cycle && 
+                    task.sectorIndex === sectorIndex
+                );
+            }
+
+            async updateTask(taskId, updates) {
+                const tasks = this.getAllTasks();
+                const taskIndex = tasks.findIndex(task => task.id === taskId);
+                
+                if (taskIndex === -1) {
+                    throw new Error('Task not found');
+                }
+                
+                const updatedTask = {
+                    ...tasks[taskIndex],
+                    ...updates,
+                    updatedAt: new Date().toISOString()
+                };
+                
+                tasks[taskIndex] = updatedTask;
+                localStorage.setItem(this.storageKey, JSON.stringify(tasks));
+                
+                return updatedTask;
+            }
+
+            async deleteTask(taskId) {
+                // Soft delete - архівуємо замість видалення
+                return this.updateTask(taskId, { archived: true });
+            }
+
+            async deleteTasksBySector(cycle, sectorIndex) {
+                const tasks = await this.getTasksBySector(cycle, sectorIndex);
+                const deletePromises = tasks.map(task => this.deleteTask(task.id));
+                return Promise.all(deletePromises);
+            }
+        }
+
+        // Головний клас додатку
+        class FractalPlannerApp {
+            constructor() {
+                this.db = new TaskDB();
+                this.fractalCircle = null;
+                this.currentTasks = [];
+                this.selectedSector = null;
+                this.isDragging = false;
+                
+                this.init();
+            }
+
+            async init() {
+                // Ініціалізуємо фрактальне коло
+                const svg = document.getElementById('fractalSvg');
+                this.fractalCircle = new FractalCircle(svg);
+                this.fractalCircle.onSectorClick = (sector) => this.handleSectorClick(sector);
+                this.fractalCircle.onSectorDrop = (sector, data) => this.handleSectorDrop(sector, data);
+                this.fractalCircle.onSectorTasksDelete = (sector) => this.handleSectorTasksDelete(sector);
+                
+                // Ініціалізуємо UI
+                this.initUI();
+                
+                // Завантажуємо завдання
+                await this.loadTasks();
+            }
+
+            initUI() {
+                const quickNote = document.getElementById('quickNote');
+                const addBtn = document.getElementById('addBtn');
+                const taskModal = document.getElementById('taskModal');
+                const taskForm = document.getElementById('taskForm');
+                const cancelBtn = document.getElementById('cancelBtn');
+
+                // Quick Note drag & drop
+                quickNote.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', quickNote.value);
+                    this.isDragging = true;
+                    quickNote.classList.add('dragging');
+                });
+
+                quickNote.addEventListener('dragend', () => {
+                    this.isDragging = false;
+                    quickNote.classList.remove('dragging');
+                });
+
+                // Add button
+                addBtn.addEventListener('click', () => {
+                    this.openTaskModal();
+                });
+
+                // Modal events
+                cancelBtn.addEventListener('click', () => {
+                    this.closeTaskModal();
+                });
+
+                taskForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.saveTask();
+                });
+
+                // Клік поза модалом для закриття
+                taskModal.addEventListener('click', (e) => {
+                    if (e.target === taskModal) {
+                        this.closeTaskModal();
+                    }
+                });
+
+                // Keyboard shortcuts
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        this.closeTaskModal();
+                    }
+                });
+            }
+
+            async handleSectorClick(sector) {
+                this.selectedSector = sector;
+                await this.loadTasksForSector(sector);
+                this.updatePanelTitle(sector);
+            }
+
+            async handleSectorDrop(sector, noteText) {
+                if (!noteText.trim()) return;
+                
+                await this.createTaskForSector(sector, { title: noteText.trim() });
+                
+                // Очищаємо input
+                document.getElementById('quickNote').value = '';
+                
+                // Оновлюємо список завдань якщо це поточний сектор
+                if (this.selectedSector && 
+                    this.selectedSector.ring === sector.ring && 
+                    this.selectedSector.quarter === sector.quarter &&
+                    this.selectedSector.index === sector.index) {
+                    await this.loadTasksForSector(sector);
+                }
+            }
+
+            async handleSectorTasksDelete(sector) {
+                const sectorInfo = this.getSectorTimeInfo(sector);
+                await this.db.deleteTasksBySector(sectorInfo.cycle, sectorInfo.sectorIndex);
+                
+                // Оновлюємо список якщо це поточний сектор
+                if (this.selectedSector && 
+                    this.selectedSector.ring === sector.ring && 
+                    this.selectedSector.quarter === sector.quarter &&
+                    this.selectedSector.index === sector.index) {
+                    await this.loadTasksForSector(sector);
+                }
+                
+                this.updateStatus('synced');
+            }
+
+            async createTaskForSector(sector, taskData) {
+                const sectorInfo = this.getSectorTimeInfo(sector);
+                
+                const task = await this.db.createTask({
+                    ...taskData,
+                    cycle: sectorInfo.cycle,
+                    sectorIndex: sectorInfo.sectorIndex,
+                    start: sectorInfo.start,
+                    end: sectorInfo.end
+                });
+
+                this.updateStatus('synced');
+                return task;
+            }
+
+            getSectorTimeInfo(sector) {
+                const now = new Date();
+                let start, end, cycle, sectorIndex;
+
+                if (sector.ring === 'outer') {
+                    // Квартальні сектори
+                    cycle = 'quarterly';
+                    sectorIndex = sector.quarter;
+                    const quarter = Math.floor(now.getMonth() / 3);
+                    const yearStart = new Date(now.getFullYear(), quarter * 3, 1);
+                    start = yearStart.toISOString();
+                    end = new Date(now.getFullYear(), (quarter + 1) * 3, 0).toISOString();
+                } else if (sector.ring === 'middle') {
+                    // Місячні підсектори
+                    cycle = 'monthly';
+                    sectorIndex = sector.index;
+                    const weekInMonth = Math.floor((now.getDate() - 1) / 7);
+                    const monthStart = new Date(now.getFullYear(), now.getMonth(), weekInMonth * 7 + 1);
+                    start = monthStart.toISOString();
+                    end = new Date(monthStart.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
+                } else {
+                    // Core - поточний день
+                    cycle = 'daily';
+                    sectorIndex = 0;
+                    const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    start = dayStart.toISOString();
+                    end = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000).toISOString();
+                }
+
+                return { cycle, sectorIndex, start, end };
+            }
+
+            async loadTasks() {
+                this.currentTasks = await this.db.getTasks();
+                this.renderTaskList(this.currentTasks);
+            }
+
+            async loadTasksForSector(sector) {
+                const sectorInfo = this.getSectorTimeInfo(sector);
+                const tasks = await this.db.getTasksBySector(sectorInfo.cycle, sectorInfo.sectorIndex);
+                this.renderTaskList(tasks);
+            }
+
+            renderTaskList(tasks) {
+                const taskList = document.getElementById('taskList');
+                taskList.innerHTML = '';
+
+                if (tasks.length === 0) {
+                    taskList.innerHTML = '<div style="text-align: center; opacity: 0.5; padding: 20px;">No tasks found</div>';
+                    return;
+                }
+
+                tasks.forEach(task => {
+                    const taskElement = this.createTaskElement(task);
+                    taskList.appendChild(taskElement);
+                });
+            }
+
+            createTaskElement(task) {
+                const div = document.createElement('div');
+                div.className = `task-item priority-${task.priority}`;
+                div.dataset.taskId = task.id;
+                
+                const statusIcon = this.getStatusIcon(task.status);
+                const priorityIcon = task.important ? '⬤' : '';
+                
+                div.innerHTML = `
+                    <div class="task-title">${statusIcon} ${task.title} ${priorityIcon}</div>
+                    <div class="task-time">${this.formatDateTime(task.start)} - ${this.formatDateTime(task.end)}</div>
+                    ${task.description ? `<div class="task-desc">${task.description}</div>` : ''}
+                    <div class="task-actions">
+                        <button class="task-delete-btn" onclick="event.stopPropagation(); app.deleteTask('${task.id}')">×</button>
+                    </div>
+                `;
+                
+                div.addEventListener('click', () => {
+                    this.openTaskModal(task);
+                });
+
+                return div;
+            }
+
+            getStatusIcon(status) {
+                const icons = {
+                    'not_started': '⭕',
+                    'in_progress': '🔄',
+                    'paused': '⏸️',
+                    'cancelled': '❌',
+                    'done': '✅'
+                };
+                return icons[status] || '⭕';
+            }
+
+            formatDateTime(isoString) {
+                const date = new Date(isoString);
+                return date.toLocaleString('uk-UA', { 
+                    month: 'short', 
+                    day: 'numeric', 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+            }
+
+            updatePanelTitle(sector) {
+                const panelTitle = document.getElementById('panelTitle');
+                let title = 'Tasks';
+                
+                if (sector.ring === 'outer') {
+                    const timeLabels = ['01:00-07:00', '07:00-13:00', '13:00-19:00', '19:00-01:00'];
+                    title = `Quarter ${sector.quarter + 1} (${timeLabels[sector.quarter]})`;
+                } else if (sector.ring === 'middle') {
+                    const middleTimeLabels = this.fractalCircle.generateMiddleTimeLabels();
+                    title = `Subquarter ${sector.index + 1} (${middleTimeLabels[sector.index]})`;
+                } else {
+                    title = 'Current Tasks (NOW)';
+                }
+                
+                panelTitle.textContent = title;
+            }
+
+            openTaskModal(task = null) {
+                const modal = document.getElementById('taskModal');
+                const modalTitle = document.getElementById('modalTitle');
+                const titleInput = document.getElementById('taskTitleInput');
+                const descInput = document.getElementById('taskDescInput');
+                const priorityInput = document.getElementById('taskPriorityInput');
+
+                if (task) {
+                    modalTitle.textContent = 'Edit Task';
+                    titleInput.value = task.title;
+                    descInput.value = task.description;
+                    priorityInput.value = task.priority;
+                    modal.dataset.editingTaskId = task.id;
+                } else {
+                    modalTitle.textContent = 'Create Task';
+                    titleInput.value = '';
+                    descInput.value = '';
+                    priorityInput.value = 'medium';
+                    delete modal.dataset.editingTaskId;
+                }
+
+                modal.classList.remove('hidden');
+                titleInput.focus();
+            }
+
+            closeTaskModal() {
+                const modal = document.getElementById('taskModal');
+                modal.classList.add('hidden');
+            }
+
+            async saveTask() {
+                const modal = document.getElementById('taskModal');
+                const titleInput = document.getElementById('taskTitleInput');
+                const descInput = document.getElementById('taskDescInput');
+                const priorityInput = document.getElementById('taskPriorityInput');
+
+                const taskData = {
+                    title: titleInput.value.trim(),
+                    description: descInput.value.trim(),
+                    priority: priorityInput.value
+                };
+
+                if (!taskData.title) {
+                    titleInput.focus();
+                    return;
+                }
+
+                try {
+                    if (modal.dataset.editingTaskId) {
+                        // Оновлення існуючого завдання
+                        await this.db.updateTask(modal.dataset.editingTaskId, taskData);
+                    } else {
+                        // Створення нового завдання
+                        if (this.selectedSector) {
+                            await this.createTaskForSector(this.selectedSector, taskData);
+                        } else {
+                            // Створення для поточного дня за замовчуванням
+                            await this.createTaskForSector({ ring: 'core' }, taskData);
+                        }
+                    }
+
+                    this.closeTaskModal();
+                    
+                    // Оновлюємо список завдань
+                    if (this.selectedSector) {
+                        await this.loadTasksForSector(this.selectedSector);
+                    } else {
+                        await this.loadTasks();
+                    }
+                    
+                    this.updateStatus('synced');
+                } catch (error) {
+                    console.error('Error saving task:', error);
+                    alert('Error saving task. Please try again.');
+                }
+            }
+
+            async deleteTask(taskId) {
+                if (confirm('Are you sure you want to delete this task?')) {
+                    try {
+                        await this.db.deleteTask(taskId);
+                        
+                        // Оновлюємо список завдань
+                        if (this.selectedSector) {
+                            await this.loadTasksForSector(this.selectedSector);
+                        } else {
+                            await this.loadTasks();
+                        }
+                        
+                        this.updateStatus('synced');
+                    } catch (error) {
+                        console.error('Error deleting task:', error);
+                        alert('Error deleting task. Please try again.');
+                    }
+                }
+            }
+
+            updateStatus(status) {
+                const indicator = document.getElementById('statusIndicator');
+                indicator.className = `status-indicator status-${status}`;
+                
+                const statusText = {
+                    'offline': 'Offline',
+                    'syncing': 'Syncing...',
+                    'synced': 'Synced',
+                    'conflict': 'Conflict'
+                };
+                
+                indicator.textContent = statusText[status] || status;
+            }
+        }
+
+        // Ініціалізація додатку
+        let app;
+        document.addEventListener('DOMContentLoaded', () => {
+            app = new FractalPlannerApp();
+        });
+    </script>
 </body>
 </html>
-
-
-
-
-
